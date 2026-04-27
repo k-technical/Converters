@@ -25,58 +25,65 @@
             <!-- Левая панель -->
             <div class="left-panel">
                 
-               <!-- Панель Ya.Schema -->
-<div class="tab-panel" id="panel-ya">
-    <div class="input-group">
-        <label>SVG-подложка (JSON с полем result):</label>
-        <textarea id="ya-svg" placeholder='{"result":"&lt;svg&gt;..."}'></textarea>
-    </div>
-    <div class="input-group">
-        <label>Данные с местами (JSON с levels):</label>
-        <textarea id="ya-json" placeholder='{"stage":{},"levels":[]}'></textarea>
-    </div>
-    <button class="btn primary" onclick="processYa()">Объединить</button>
-    <button class="btn" id="ya-download" style="display:none;" onclick="downloadYa()">Скачать SVG</button>
-    <button class="btn" onclick="clearYa()">Очистить</button>
-</div>
+                <!-- Панель Ya.Schema -->
+                <div class="tab-panel" id="panel-ya">
+                    <div class="input-group">
+                        <label>SVG-подложка (JSON с полем result):</label>
+                        <textarea id="ya-svg" placeholder='{"result":"&lt;svg&gt;..."}'></textarea>
+                    </div>
+                    <div class="input-group">
+                        <label>Данные с местами (JSON с levels):</label>
+                        <textarea id="ya-json" placeholder='{"stage":{},"levels":[]}'></textarea>
+                    </div>
+                    <button class="btn primary" onclick="processYa()">Объединить</button>
+                    <button class="btn" id="ya-download" style="display:none;" onclick="downloadYa()">Скачать SVG</button>
+                    <button class="btn" onclick="clearYa()">Очистить</button>
+                </div>
 
-          <!-- Панель TS.Schema -->
-<div class="tab-panel" id="panel-ts" style="display:none;">
-    <div class="file-upload" id="ts-dropzone">
-        <p>Перетащите SVG-файл сюда</p>
-        <small>или нажмите для выбора</small>
-    </div>
-    <input type="file" id="ts-file" accept=".svg" style="display:none;">
-    <div id="ts-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
-    <button class="btn primary" onclick="processTs()">Обработать</button>
-    <button class="btn" id="ts-download" style="display:none;" onclick="downloadTs()">Скачать SVG</button>
-    <button class="btn" onclick="clearTs()">Очистить</button>
-</div>
+                <!-- Панель TS.Schema -->
+                <div class="tab-panel" id="panel-ts" style="display:none;">
+                    <div class="file-upload" id="ts-dropzone">
+                        <p>Перетащите SVG-файл сюда</p>
+                        <small>или нажмите для выбора</small>
+                    </div>
+                    <input type="file" id="ts-file" accept=".svg" style="display:none;">
+                    <div id="ts-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
+                    <button class="btn primary" onclick="processTs()">Обработать</button>
+                    <button class="btn" id="ts-download" style="display:none;" onclick="downloadTs()">Скачать SVG</button>
+                    <button class="btn" onclick="clearTs()">Очистить</button>
+                </div>
 
-             <!-- Панель Q.Schema -->
-<div class="tab-panel" id="panel-q" style="display:none;">
-    <div class="file-upload" id="q-dropzone">
-        <p>Загрузите SVG-схему</p>
-    </div>
-    <input type="file" id="q-file" accept=".svg" style="display:none;">
-    <div id="q-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
-    <div class="input-group">
-        <label>Код с координатами (window.schemeConfig):</label>
-        <textarea id="q-code" placeholder="Вставьте код из файла со схемой..."></textarea>
-    </div>
-    <button class="btn primary" onclick="processQ()">Создать схему</button>
-    <button class="btn" id="q-download" style="display:none;" onclick="downloadQ()">Скачать SVG</button>
-    <button class="btn" onclick="clearQ()">Очистить</button>
-</div>
+                <!-- Панель Q.Schema -->
+                <div class="tab-panel" id="panel-q" style="display:none;">
+                    <div class="file-upload" id="q-dropzone">
+                        <p>Загрузите SVG-схему</p>
+                    </div>
+                    <input type="file" id="q-file" accept=".svg" style="display:none;">
+                    <div id="q-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
+                    <div class="input-group">
+                        <label>Код с координатами (window.schemeConfig):</label>
+                        <textarea id="q-code" placeholder="Вставьте код из файла со схемой..."></textarea>
+                    </div>
+                    <button class="btn primary" onclick="processQ()">Создать схему</button>
+                    <button class="btn" id="q-download" style="display:none;" onclick="downloadQ()">Скачать SVG</button>
+                    <button class="btn" onclick="clearQ()">Очистить</button>
+                </div>
+
+            </div>
+            <!-- Конец left-panel -->
+
             <!-- Правая панель (превью) -->
             <div class="right-panel">
                 <div id="previewContainer"></div>
             </div>
+
         </div>
+        <!-- Конец main-content -->
 
         <!-- Статус -->
         <div class="stats" id="status"></div>
     </div>
+    <!-- Конец container -->
 
     <script src="js/utils.js"></script>
     <script src="js/ya-schema.js"></script>
