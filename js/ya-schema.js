@@ -30,8 +30,18 @@ function processYa() {
 
         const result = buildGroupsFromLevels(jsonData, svgContent);
         
-        showPreview(result.svg);
-        setStatus(`✓ Объединено: ${result.groupsCount} групп`);
+        // Поворот если нужно
+        let finalSvg = result.svg;
+        const shouldRotate = document.getElementById('ya-rotate').checked;
+        
+        if (shouldRotate) {
+            finalSvg = rotateSVG(finalSvg);
+        }
+        
+        showPreview(finalSvg);
+        
+        const rotateText = shouldRotate ? ' (развёрнуто на 180°)' : '';
+        setStatus(`✓ Объединено: ${result.groupsCount} групп${rotateText}`);
         
         document.getElementById('ya-download').style.display = 'block';
 
@@ -40,26 +50,43 @@ function processYa() {
     }
 }
 
+// Поворот SVG на 180 градусов вокруг центра viewBox
+function rotateSVG(svgString) {
+    const doc = parseSVG(svgString);
+    const svg = doc.documentElement;
+    
+    // Ищем viewBox
+    const viewBox = svg.getAttribute('viewBox');
+    let cx, cy;
+    
+    if (viewBox) {
+        const parts = viewBox.split(/\s+/).map(Number);
+        cx = parts[0] + parts[2] / 2;
+        cy = parts[1] + parts[3] / 2;
+    } else {
+        // Если нет viewBox, используем width/height
+        const width = parseFloat(svg.getAttribute('width')) || 1000;
+        const height = parseFloat(svg.getAttribute('height')) || 1000;
+        cx = width / 2;
+        cy = height / 2;
+    }
+    
+    // Оборачиваем всё содержимое в группу с трансформацией
+    const existingContent = document.createDocumentFragment();
+    while (svg.firstChild) {
+        existingContent.appendChild(svg.firstChild);
+    }
+    
+    const transformGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    transformGroup.setAttribute('transform', `rotate(180, ${cx}, ${cy})`);
+    transformGroup.appendChild(existingContent);
+    svg.appendChild(transformGroup);
+    
+    return serializeSVG(doc);
+}
+
 function buildGroupsFromLevels(data, svgContent) {
     let groups = [];
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
-    function extractCoordsFromPath(path) {
-        if (!path) return;
-        const numbers = path.match(/-?\d+\.?\d*/g) || [];
-        for (let i = 0; i < numbers.length; i += 2) {
-            if (numbers[i] && numbers[i + 1]) {
-                const x = parseFloat(numbers[i]);
-                const y = parseFloat(numbers[i + 1]);
-                if (!isNaN(x) && !isNaN(y)) {
-                    minX = Math.min(minX, x);
-                    minY = Math.min(minY, y);
-                    maxX = Math.max(maxX, x);
-                    maxY = Math.max(maxY, y);
-                }
-            }
-        }
-    }
 
     function cleanGroupName(name) {
         if (!name) return 'Без имени';
@@ -77,14 +104,12 @@ function buildGroupsFromLevels(data, svgContent) {
             let groupName = cleanGroupName(level.name);
 
             if (level.outline) {
-                extractCoordsFromPath(level.outline);
                 groupContent.push(`    <path id="Контур_1" d="${level.outline}" fill="none" stroke="#000000" stroke-width="1"/>`);
             }
 
             if (level.sections) {
                 level.sections.forEach(section => {
                     if (section.outline) {
-                        extractCoordsFromPath(section.outline);
                         groupContent.push(`    <path id="Контур_1" d="${section.outline}" fill="none" stroke="#000000" stroke-width="1"/>`);
                     }
                 });
@@ -93,11 +118,6 @@ function buildGroupsFromLevels(data, svgContent) {
             if (level.seats) {
                 level.seats.forEach(seat => {
                     if (seat.x_coord && seat.y_coord && seat.place) {
-                        minX = Math.min(minX, seat.x_coord);
-                        minY = Math.min(minY, seat.y_coord);
-                        maxX = Math.max(maxX, seat.x_coord);
-                        maxY = Math.max(maxY, seat.y_coord);
-
                         const placeId = formatPlaceName(seat.row, seat.place);
                         groupContent.push(`    <circle id="${placeId}" cx="${seat.x_coord}" cy="${seat.y_coord}" r="5" fill="none" stroke="#AEAEAE" stroke-width="1" data-row="${seat.row || '-'}" data-place="${seat.place}"/>`);
                     }
@@ -126,5 +146,6 @@ function downloadYa() {
 function clearYa() {
     document.getElementById('ya-svg').value = '';
     document.getElementById('ya-json').value = '';
+    document.getElementById('ya-rotate').checked = false;
     clearResult();
 }
