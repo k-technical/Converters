@@ -69,7 +69,7 @@ function rotateSVG(svgString) {
         cy = height / 2;
     }
     
-    // 1. Собираем все <text> и запоминаем их координаты (в исходной системе)
+    // 1. Выдёргиваем все <text> из DOM и запоминаем
     const textData = [];
     const textElements = svg.querySelectorAll('text');
     
@@ -77,9 +77,10 @@ function rotateSVG(svgString) {
         const x = parseFloat(text.getAttribute('x')) || 0;
         const y = parseFloat(text.getAttribute('y')) || 0;
         textData.push({ element: text, x, y });
+        text.remove(); // убираем из старого места
     });
     
-    // 2. Оборачиваем всё в поворот на 180°
+    // 2. Оборачиваем всё ОСТАЛЬНОЕ в поворот на 180°
     const existingContent = document.createDocumentFragment();
     while (svg.firstChild) {
         existingContent.appendChild(svg.firstChild);
@@ -90,28 +91,25 @@ function rotateSVG(svgString) {
     transformGroup.appendChild(existingContent);
     svg.appendChild(transformGroup);
     
-    // 3. Для каждого текста: поворачиваем обратно вокруг ЕГО ЖЕ координат
-    //    (внутри перевёрнутой группы координаты те же, поворот локальный)
+    // 3. Создаём Буквы_1 ПОВЕРХ всего (вне поворота)
     const lettersGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     lettersGroup.setAttribute('id', 'Буквы_1');
     
     textData.forEach(({ element, x, y }) => {
-        const textGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        textGroup.setAttribute('transform', `rotate(180, ${x}, ${y})`);
+        // Новые координаты после поворота всей схемы
+        const newX = 2 * cx - x;
+        const newY = 2 * cy - y;
         
-        // Забираем text из текущего места и кладём в textGroup
-        element.parentNode.insertBefore(textGroup, element);
-        textGroup.appendChild(element);
+        element.setAttribute('x', newX);
+        element.setAttribute('y', newY);
         
-        // Переносим в Буквы_1
-        lettersGroup.appendChild(textGroup);
+        lettersGroup.appendChild(element);
     });
     
-    transformGroup.appendChild(lettersGroup);
+    svg.appendChild(lettersGroup);
     
     return serializeSVG(doc);
 }
-
 function buildGroupsFromLevels(data, svgContent) {
     let groups = [];
 
