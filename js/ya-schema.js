@@ -54,36 +54,22 @@ function rotateSVG(svgString) {
     const doc = parseSVG(svgString);
     const svg = doc.documentElement;
     
+    // Ищем viewBox
     const viewBox = svg.getAttribute('viewBox');
-    let vbX = 0, vbY = 0, vbW = 492, vbH = 502;
+    let cx, cy;
     
     if (viewBox) {
         const parts = viewBox.split(/\s+/).map(Number);
-        vbX = parts[0];
-        vbY = parts[1];
-        vbW = parts[2];
-        vbH = parts[3];
+        cx = parts[0] + parts[2] / 2;
+        cy = parts[1] + parts[3] / 2;
     } else {
-        vbW = parseFloat(svg.getAttribute('width')) || 492;
-        vbH = parseFloat(svg.getAttribute('height')) || 502;
+        const width = parseFloat(svg.getAttribute('width')) || 1000;
+        const height = parseFloat(svg.getAttribute('height')) || 1000;
+        cx = width / 2;
+        cy = height / 2;
     }
     
-    const cx = vbX + vbW / 2;
-    const cy = vbY + vbH / 2;
-    
-    // 1. Вынимаем все текстовые группы
-    const textGroups = svg.querySelectorAll('g');
-    const savedTextGroups = [];
-    
-    textGroups.forEach(g => {
-        const texts = g.querySelectorAll('text');
-        if (texts.length > 0) {
-            savedTextGroups.push(g);
-            g.remove();
-        }
-    });
-    
-    // 2. Поворачиваем всё остальное на 180°
+    // Оборачиваем всё содержимое в группу с поворотом на 180°
     const existingContent = document.createDocumentFragment();
     while (svg.firstChild) {
         existingContent.appendChild(svg.firstChild);
@@ -93,78 +79,6 @@ function rotateSVG(svgString) {
     transformGroup.setAttribute('transform', `rotate(180, ${cx}, ${cy})`);
     transformGroup.appendChild(existingContent);
     svg.appendChild(transformGroup);
-    
-    // 3. Буквы_1 — тексты без поворота, но с отражёнными координатами
-    const lettersGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    lettersGroup.setAttribute('id', 'Буквы_1');
-    
-    savedTextGroups.forEach(g => {
-        // Копируем группу
-        const newG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        
-        // Копируем атрибуты кроме transform
-        for (let i = 0; i < g.attributes.length; i++) {
-            const attr = g.attributes[i];
-            if (attr.name !== 'transform') {
-                newG.setAttribute(attr.name, attr.value);
-            }
-        }
-        
-        // Обрабатываем старый transform
-        const oldTransform = g.getAttribute('transform');
-        if (oldTransform) {
-            const translateMatch = oldTransform.match(/translate\(([^)]+)\)/);
-            if (translateMatch) {
-                const coords = translateMatch[1].split(/\s+/).map(Number);
-                // Отражаем translate
-                const newTx = 2 * cx - coords[0];
-                const newTy = 2 * cy - coords[1];
-                newG.setAttribute('transform', `translate(${newTx}, ${newTy})`);
-            }
-        }
-        
-        // Копируем все text/tspan и отражаем их координаты
-        const textElements = g.querySelectorAll('text');
-        textElements.forEach(text => {
-            const newText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            
-            for (let i = 0; i < text.attributes.length; i++) {
-                const attr = text.attributes[i];
-                newText.setAttribute(attr.name, attr.value);
-            }
-            
-            // Отражаем tspan координаты
-            const tspans = text.querySelectorAll('tspan');
-            tspans.forEach(tspan => {
-                const newTspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-                
-                for (let i = 0; i < tspan.attributes.length; i++) {
-                    const attr = tspan.attributes[i];
-                    if (attr.name === 'x') {
-                        newTspan.setAttribute('x', 2 * cx - parseFloat(attr.value));
-                    } else if (attr.name === 'y') {
-                        newTspan.setAttribute('y', 2 * cy - parseFloat(attr.value));
-                    } else {
-                        newTspan.setAttribute(attr.name, attr.value);
-                    }
-                }
-                
-                newTspan.textContent = tspan.textContent;
-                newText.appendChild(newTspan);
-            });
-            
-            // Если нет tspan — копируем текст напрямую
-            if (tspans.length === 0) {
-                newText.textContent = text.textContent;
-            }
-            
-            newG.appendChild(newText);
-        });
-        
-        lettersGroup.appendChild(newG);
-    });
-    
-    svg.appendChild(lettersGroup);
     
     return serializeSVG(doc);
 }
