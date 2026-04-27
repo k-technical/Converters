@@ -149,27 +149,16 @@ function processQ() {
 
         seats.forEach(seat => {
             const seatId = formatSeatId(seat.row, seat.place);
-            const color = '#4CAF50';
 
-            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            circle.setAttribute('cx', seat.x);
-            circle.setAttribute('cy', seat.y);
-            circle.setAttribute('r', '6');
-            circle.setAttribute('fill', color);
-            circle.setAttribute('stroke', '#333');
-            circle.setAttribute('stroke-width', '1');
-            circle.setAttribute('id', seatId);
-            seatsGroup.appendChild(circle);
-
-            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            text.setAttribute('x', seat.x);
-            text.setAttribute('y', seat.y + 2);
-            text.setAttribute('text-anchor', 'middle');
-            text.setAttribute('font-family', 'Arial');
-            text.setAttribute('font-size', '5');
-            text.setAttribute('fill', 'white');
-            text.textContent = seat.place;
-            seatsGroup.appendChild(text);
+           const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+circle.setAttribute('cx', seat.x);
+circle.setAttribute('cy', seat.y);
+circle.setAttribute('r', '6');
+circle.setAttribute('fill', 'none');
+circle.setAttribute('stroke', '#AEAEAE');
+circle.setAttribute('stroke-width', '1');
+circle.setAttribute('id', seatId);
+seatsGroup.appendChild(circle);
         });
 
         svg.appendChild(seatsGroup);
