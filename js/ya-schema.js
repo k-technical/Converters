@@ -80,41 +80,38 @@ function rotateSVG(svgString) {
     transformGroup.appendChild(existingContent);
     svg.appendChild(transformGroup);
     
-    // 2. Находим все <text> (теперь они внутри transformGroup)
+    // 2. Находим все <text> (теперь они внутри перевёрнутой группы)
     const textElements = transformGroup.querySelectorAll('text');
     
-    // 3. Создаём Буквы_1 и переносим туда текст с обратным поворотом
-    const lettersGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    lettersGroup.setAttribute('id', 'Буквы_1');
-    
+    // 3. Для каждого текста: поворачиваем его обратно вокруг его же координат
     textElements.forEach(text => {
         const x = text.getAttribute('x');
         const y = text.getAttribute('y');
         
-        // Оборачиваем текст в группу с поворотом вокруг его же координат
-        const wrapper = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        
         if (x && y) {
+            const wrapper = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             wrapper.setAttribute('transform', `rotate(180, ${x}, ${y})`);
-        } else {
-            // Если нет x,y — поворачиваем вокруг начала координат
-            wrapper.setAttribute('transform', 'rotate(180)');
+            
+            text.parentNode.insertBefore(wrapper, text);
+            wrapper.appendChild(text);
         }
-        
-        // Перемещаем text в wrapper
-        text.parentNode.insertBefore(wrapper, text);
-        wrapper.appendChild(text);
-        
-        // Переносим wrapper в Буквы_1
-        lettersGroup.appendChild(wrapper);
     });
     
-    // 4. Буквы_1 добавляем в transformGroup
+    // 4. Собираем все обёрнутые тексты в Буквы_1
+    const lettersGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    lettersGroup.setAttribute('id', 'Буквы_1');
+    
+    const allWrappers = transformGroup.querySelectorAll('g[transform]');
+    allWrappers.forEach(wrapper => {
+        if (wrapper.querySelector('text') && wrapper.getAttribute('transform').includes('rotate')) {
+            lettersGroup.appendChild(wrapper);
+        }
+    });
+    
     transformGroup.appendChild(lettersGroup);
     
     return serializeSVG(doc);
 }
-
 function buildGroupsFromLevels(data, svgContent) {
     let groups = [];
 
