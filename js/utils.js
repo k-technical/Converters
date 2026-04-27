@@ -1,3 +1,4 @@
+// Скачивание SVG
 function downloadSVG(svgContent, filename = 'result.svg') {
     if (!svgContent.startsWith('<?xml')) {
         svgContent = '<?xml version="1.0" encoding="utf-8"?>\n' + svgContent;
@@ -14,6 +15,7 @@ function downloadSVG(svgContent, filename = 'result.svg') {
     URL.revokeObjectURL(url);
 }
 
+// Парсинг JSON
 function extractJSON(input) {
     try {
         return JSON.parse(input);
@@ -27,10 +29,12 @@ function extractJSON(input) {
     }
 }
 
+// Формат ID места
 function formatSeatId(row, place) {
     return `Ряд_x5F_${row}_x7C_${place}-${place}`;
 }
 
+// Парсинг SVG строки в DOM
 function parseSVG(svgString) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(svgString, 'image/svg+xml');
@@ -39,4 +43,10 @@ function parseSVG(svgString) {
         throw new Error('Невалидный SVG');
     }
     return doc;
+}
+
+// Сериализация SVG DOM в строку
+function serializeSVG(doc) {
+    const serializer = new XMLSerializer();
+    return serializer.serializeToString(doc.documentElement);
 }
