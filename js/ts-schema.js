@@ -98,11 +98,14 @@ function processTs() {
             rows.forEach(row => row.remove());
 
             seatsWithRows.forEach(({element, rowNo, seatNo}) => {
-                const newId = formatSeatId(rowNo, seatNo);
-                element.setAttribute('id', newId);
-                seatCount++;
-                parent.appendChild(element);
-            });
+    const newId = formatSeatId(rowNo, seatNo);
+    element.setAttribute('id', newId);
+    element.setAttribute('fill', 'none');
+    element.setAttribute('stroke', '#AEAEAE');
+    element.setAttribute('stroke-width', '1');
+    seatCount++;
+    parent.appendChild(element);
+});
         });
 
         const allElements = doc.querySelectorAll('[id]');
