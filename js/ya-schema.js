@@ -50,7 +50,6 @@ function processYa() {
     }
 }
 
-// Поворот SVG на 180 градусов вокруг центра viewBox
 function rotateSVG(svgString) {
     const doc = parseSVG(svgString);
     const svg = doc.documentElement;
@@ -70,35 +69,17 @@ function rotateSVG(svgString) {
         cy = height / 2;
     }
     
-    // 1. Сначала находим все текстовые элементы и переворачиваем каждый вокруг своего центра
+    // 1. Собираем все <text> и запоминаем их координаты (в исходной системе)
+    const textData = [];
     const textElements = svg.querySelectorAll('text');
     
     textElements.forEach(text => {
         const x = parseFloat(text.getAttribute('x')) || 0;
         const y = parseFloat(text.getAttribute('y')) || 0;
-        
-        const textGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        textGroup.setAttribute('transform', `rotate(180, ${x}, ${y})`);
-        
-        const parent = text.parentNode;
-        parent.insertBefore(textGroup, text);
-        textGroup.appendChild(text);
-        // textGroup теперь содержит перевёрнутый текст
+        textData.push({ element: text, x, y });
     });
     
-    // 2. Собираем все textGroup в Буквы_1
-    const allTextGroups = svg.querySelectorAll('g[transform]');
-    const lettersGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    lettersGroup.setAttribute('id', 'Буквы_1');
-    
-    allTextGroups.forEach(group => {
-        // Проверяем что внутри text
-        if (group.querySelector('text')) {
-            lettersGroup.appendChild(group);
-        }
-    });
-    
-    // 3. Оборачиваем всё содержимое (включая Буквы_1) в общий поворот на 180°
+    // 2. Оборачиваем всё в поворот на 180°
     const existingContent = document.createDocumentFragment();
     while (svg.firstChild) {
         existingContent.appendChild(svg.firstChild);
@@ -109,7 +90,23 @@ function rotateSVG(svgString) {
     transformGroup.appendChild(existingContent);
     svg.appendChild(transformGroup);
     
-    // 4. Буквы_1 добавляем поверх всего
+    // 3. Для каждого текста: поворачиваем обратно вокруг ЕГО ЖЕ координат
+    //    (внутри перевёрнутой группы координаты те же, поворот локальный)
+    const lettersGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    lettersGroup.setAttribute('id', 'Буквы_1');
+    
+    textData.forEach(({ element, x, y }) => {
+        const textGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        textGroup.setAttribute('transform', `rotate(180, ${x}, ${y})`);
+        
+        // Забираем text из текущего места и кладём в textGroup
+        element.parentNode.insertBefore(textGroup, element);
+        textGroup.appendChild(element);
+        
+        // Переносим в Буквы_1
+        lettersGroup.appendChild(textGroup);
+    });
+    
     transformGroup.appendChild(lettersGroup);
     
     return serializeSVG(doc);
