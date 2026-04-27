@@ -64,14 +64,41 @@ function rotateSVG(svgString) {
         cx = parts[0] + parts[2] / 2;
         cy = parts[1] + parts[3] / 2;
     } else {
-        // Если нет viewBox, используем width/height
         const width = parseFloat(svg.getAttribute('width')) || 1000;
         const height = parseFloat(svg.getAttribute('height')) || 1000;
         cx = width / 2;
         cy = height / 2;
     }
     
-    // Оборачиваем всё содержимое в группу с трансформацией
+    // 1. Сначала находим все текстовые элементы и переворачиваем каждый вокруг своего центра
+    const textElements = svg.querySelectorAll('text');
+    
+    textElements.forEach(text => {
+        const x = parseFloat(text.getAttribute('x')) || 0;
+        const y = parseFloat(text.getAttribute('y')) || 0;
+        
+        const textGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        textGroup.setAttribute('transform', `rotate(180, ${x}, ${y})`);
+        
+        const parent = text.parentNode;
+        parent.insertBefore(textGroup, text);
+        textGroup.appendChild(text);
+        // textGroup теперь содержит перевёрнутый текст
+    });
+    
+    // 2. Собираем все textGroup в Буквы_1
+    const allTextGroups = svg.querySelectorAll('g[transform]');
+    const lettersGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    lettersGroup.setAttribute('id', 'Буквы_1');
+    
+    allTextGroups.forEach(group => {
+        // Проверяем что внутри text
+        if (group.querySelector('text')) {
+            lettersGroup.appendChild(group);
+        }
+    });
+    
+    // 3. Оборачиваем всё содержимое (включая Буквы_1) в общий поворот на 180°
     const existingContent = document.createDocumentFragment();
     while (svg.firstChild) {
         existingContent.appendChild(svg.firstChild);
@@ -81,6 +108,9 @@ function rotateSVG(svgString) {
     transformGroup.setAttribute('transform', `rotate(180, ${cx}, ${cy})`);
     transformGroup.appendChild(existingContent);
     svg.appendChild(transformGroup);
+    
+    // 4. Буквы_1 добавляем поверх всего
+    transformGroup.appendChild(lettersGroup);
     
     return serializeSVG(doc);
 }
