@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Инструменты для схем</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Инструменты для схем</h1>
+            <p>Обработка SVG-схем из разных источников</p>
+        </div>
+
+        <!-- Табы -->
+        <div class="tabs">
+            <button class="tab active" data-tab="yandex">Схема 1</button>
+            <button class="tab" data-tab="ticketcloud">Схема 2</button>
+            <button class="tab" data-tab="qtickets">Схема 3</button>
+        </div>
+
+        <!-- Основной контент -->
+        <div class="main-content">
+            <!-- Левая панель -->
+            <div class="left-panel">
+                <!-- Панель Яндекс -->
+                <div class="tab-panel" id="panel-yandex">
+                    <div class="input-group">
+                        <label>SVG-подложка (JSON с полем result):</label>
+                        <textarea id="yandex-svg" placeholder='{"result":"&lt;svg&gt;..."}'></textarea>
+                    </div>
+                    <div class="input-group">
+                        <label>Данные с местами (JSON с levels):</label>
+                        <textarea id="yandex-json" placeholder='{"stage":{},"levels":[]}'></textarea>
+                    </div>
+                    <button class="btn primary" onclick="processYandex()">Объединить</button>
+                    <button class="btn" id="yandex-download" style="display:none;" onclick="downloadYandex()">Скачать SVG</button>
+                    <button class="btn" onclick="clearYandex()">Очистить</button>
+                    <div class="info-text">
+                        <p>Группы: каждый стол в отдельной группе</p>
+                        <p>Контуры: id="Контур_1" внутри группы</p>
+                        <p>Места: id="Ряд_n|a-a", радиус 5px</p>
+                    </div>
+                </div>
+
+                <!-- Панель TicketCloud -->
+                <div class="tab-panel" id="panel-ticketcloud" style="display:none;">
+                    <div class="file-upload" id="tc-dropzone">
+                        <p>Перетащите SVG-файл сюда</p>
+                        <small>или нажмите для выбора</small>
+                    </div>
+                    <input type="file" id="tc-file" accept=".svg" style="display:none;">
+                    <div class="input-group">
+                        <label>Или вставьте SVG-код:</label>
+                        <textarea id="ticketcloud-svg" placeholder="<svg>..."></textarea>
+                    </div>
+                    <div class="options">
+                        <div class="option">
+                            <input type="checkbox" id="tc-flatten" checked>
+                            <label for="tc-flatten">Убрать группы рядов</label>
+                        </div>
+                        <div class="option">
+                            <input type="checkbox" id="tc-fix-ids" checked>
+                            <label for="tc-fix-ids">Исправить ID мест</label>
+                        </div>
+                        <div class="option">
+                            <input type="checkbox" id="tc-fix-contours" checked>
+                            <label for="tc-fix-contours">Очистить ID контуров</label>
+                        </div>
+                    </div>
+                    <button class="btn primary" onclick="processTicketCloud()">Обработать</button>
+                    <button class="btn" id="tc-download" style="display:none;" onclick="downloadTicketCloud()">Скачать SVG</button>
+                    <button class="btn" onclick="clearTicketCloud()">Очистить</button>
+                </div>
+
+                <!-- Панель Qtickets -->
+                <div class="tab-panel" id="panel-qtickets" style="display:none;">
+                    <div class="file-upload" id="qt-dropzone">
+                        <p>Загрузите SVG-схему</p>
+                    </div>
+                    <input type="file" id="qt-file" accept=".svg" style="display:none;">
+                    <div class="input-group">
+                        <label>Код с координатами:</label>
+                        <textarea id="qtickets-code" placeholder="Вставьте весь код из файла..."></textarea>
+                    </div>
+                    <div class="input-group">
+                        <label>JSON статусов (опционально):</label>
+                        <textarea id="qtickets-seats" placeholder='{"ordered_seats":{}}'></textarea>
+                    </div>
+                    <button class="btn primary" onclick="processQtickets()">Создать схему</button>
+                    <button class="btn" id="qt-download" style="display:none;" onclick="downloadQtickets()">Скачать SVG</button>
+                    <button class="btn" onclick="clearQtickets()">Очистить</button>
+                </div>
+            </div>
+
+            <!-- Правая панель (превью) -->
+            <div class="right-panel">
+                <div id="previewContainer"></div>
+            </div>
+        </div>
+
+        <!-- Статус -->
+        <div class="stats" id="status"></div>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/yandex.js"></script>
+    <script src="js/ticketcloud.js"></script>
+    <script src="js/qtickets.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
