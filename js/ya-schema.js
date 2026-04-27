@@ -69,18 +69,7 @@ function rotateSVG(svgString) {
         cy = height / 2;
     }
     
-    // 1. Выдёргиваем все <text> из DOM и запоминаем
-    const textData = [];
-    const textElements = svg.querySelectorAll('text');
-    
-    textElements.forEach(text => {
-        const x = parseFloat(text.getAttribute('x')) || 0;
-        const y = parseFloat(text.getAttribute('y')) || 0;
-        textData.push({ element: text, x, y });
-        text.remove(); // убираем из старого места
-    });
-    
-    // 2. Оборачиваем всё ОСТАЛЬНОЕ в поворот на 180°
+    // 1. Оборачиваем всё содержимое в поворот на 180°
     const existingContent = document.createDocumentFragment();
     while (svg.firstChild) {
         existingContent.appendChild(svg.firstChild);
@@ -91,25 +80,41 @@ function rotateSVG(svgString) {
     transformGroup.appendChild(existingContent);
     svg.appendChild(transformGroup);
     
-    // 3. Создаём Буквы_1 ПОВЕРХ всего (вне поворота)
+    // 2. Находим все <text> (теперь они внутри transformGroup)
+    const textElements = transformGroup.querySelectorAll('text');
+    
+    // 3. Создаём Буквы_1 и переносим туда текст с обратным поворотом
     const lettersGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     lettersGroup.setAttribute('id', 'Буквы_1');
     
-    textData.forEach(({ element, x, y }) => {
-        // Новые координаты после поворота всей схемы
-        const newX = 2 * cx - x;
-        const newY = 2 * cy - y;
+    textElements.forEach(text => {
+        const x = text.getAttribute('x');
+        const y = text.getAttribute('y');
         
-        element.setAttribute('x', newX);
-        element.setAttribute('y', newY);
+        // Оборачиваем текст в группу с поворотом вокруг его же координат
+        const wrapper = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         
-        lettersGroup.appendChild(element);
+        if (x && y) {
+            wrapper.setAttribute('transform', `rotate(180, ${x}, ${y})`);
+        } else {
+            // Если нет x,y — поворачиваем вокруг начала координат
+            wrapper.setAttribute('transform', 'rotate(180)');
+        }
+        
+        // Перемещаем text в wrapper
+        text.parentNode.insertBefore(wrapper, text);
+        wrapper.appendChild(text);
+        
+        // Переносим wrapper в Буквы_1
+        lettersGroup.appendChild(wrapper);
     });
     
-    svg.appendChild(lettersGroup);
+    // 4. Буквы_1 добавляем в transformGroup
+    transformGroup.appendChild(lettersGroup);
     
     return serializeSVG(doc);
 }
+
 function buildGroupsFromLevels(data, svgContent) {
     let groups = [];
 
