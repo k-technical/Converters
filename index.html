@@ -44,35 +44,21 @@
                     </div>
                 </div>
 
-                <!-- Панель TS.Schema -->
-                <div class="tab-panel" id="panel-ts" style="display:none;">
-                    <div class="file-upload" id="ts-dropzone">
-                        <p>Перетащите SVG-файл сюда</p>
-                        <small>или нажмите для выбора</small>
-                    </div>
-                    <input type="file" id="ts-file" accept=".svg" style="display:none;">
-                    <div class="input-group">
-                        <label>Или вставьте SVG-код:</label>
-                        <textarea id="ts-svg" placeholder="<svg>..."></textarea>
-                    </div>
-                    <div class="options">
-                        <div class="option">
-                            <input type="checkbox" id="ts-flatten" checked>
-                            <label for="ts-flatten">Убрать группы рядов</label>
-                        </div>
-                        <div class="option">
-                            <input type="checkbox" id="ts-fix-ids" checked>
-                            <label for="ts-fix-ids">Исправить ID мест</label>
-                        </div>
-                        <div class="option">
-                            <input type="checkbox" id="ts-fix-contours" checked>
-                            <label for="ts-fix-contours">Очистить ID контуров</label>
-                        </div>
-                    </div>
-                    <button class="btn primary" onclick="processTs()">Обработать</button>
-                    <button class="btn" id="ts-download" style="display:none;" onclick="downloadTs()">Скачать SVG</button>
-                    <button class="btn" onclick="clearTs()">Очистить</button>
-                </div>
+             <!-- Панель TS.Schema -->
+<div class="tab-panel" id="panel-ts" style="display:none;">
+    <div class="file-upload" id="ts-dropzone">
+        <p>Перетащите SVG-файл сюда</p>
+        <small>или нажмите для выбора</small>
+    </div>
+    <input type="file" id="ts-file" accept=".svg" style="display:none;">
+    <div class="input-group">
+        <label>Или вставьте SVG-код:</label>
+        <textarea id="ts-svg" placeholder="<svg>..."></textarea>
+    </div>
+    <button class="btn primary" onclick="processTs()">Обработать</button>
+    <button class="btn" id="ts-download" style="display:none;" onclick="downloadTs()">Скачать SVG</button>
+    <button class="btn" onclick="clearTs()">Очистить</button>
+</div>
 
                 <!-- Панель Q.Schema -->
                 <div class="tab-panel" id="panel-q" style="display:none;">
