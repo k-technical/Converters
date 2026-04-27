@@ -68,7 +68,6 @@ function rotateSVG(svgString) {
         cy = height / 2;
     }
     
-    // 1. Поворачиваем всё на 180°
     const existingContent = document.createDocumentFragment();
     while (svg.firstChild) {
         existingContent.appendChild(svg.firstChild);
@@ -79,42 +78,8 @@ function rotateSVG(svgString) {
     transformGroup.appendChild(existingContent);
     svg.appendChild(transformGroup);
     
-    // 2. Находим все <text> внутри повёрнутой схемы
-    const textElements = transformGroup.querySelectorAll('text');
-    
-    // 3. Создаём Буквы_1
-    const lettersGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    lettersGroup.setAttribute('id', 'Буквы_1');
-    
-    // 4. Для каждого текста
-    textElements.forEach(text => {
-        // Вытаскиваем из родительских групп — переносим прямо в transformGroup
-        // (временно, чтобы измерить)
-        transformGroup.appendChild(text);
-        
-        // Измеряем
-        const bbox = text.getBBox();
-        const centerX = bbox.x + bbox.width / 2;
-        const centerY = bbox.y + bbox.height / 2;
-        
-        // Создаём обёртку с поворотом вокруг центра
-        const wrapper = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        wrapper.setAttribute('transform', `rotate(180, ${centerX}, ${centerY})`);
-        
-        // Вставляем обёртку перед текстом
-        transformGroup.insertBefore(wrapper, text);
-        // Переносим текст внутрь обёртки
-        wrapper.appendChild(text);
-        // Переносим обёртку в Буквы_1
-        lettersGroup.appendChild(wrapper);
-    });
-    
-    // 5. Буквы_1 внутрь transformGroup
-    transformGroup.appendChild(lettersGroup);
-    
     return serializeSVG(doc);
 }
-
 function buildGroupsFromLevels(data, svgContent) {
     let groups = [];
 
