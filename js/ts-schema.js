@@ -61,10 +61,6 @@ function processTs() {
         let seatCount = 0;
         let contourCount = 0;
 
-        const flattenGroups = document.getElementById('ts-flatten').checked;
-        const fixSeatIds = document.getElementById('ts-fix-ids').checked;
-        const fixContourIds = document.getElementById('ts-fix-contours').checked;
-
         // Поиск групп с рядами
         const allRowGroups = doc.querySelectorAll('[tc-row-no]');
 
@@ -101,40 +97,30 @@ function processTs() {
                 });
             });
 
-            if (flattenGroups) {
-                rows.forEach(row => row.remove());
+            // Убираем группы рядов
+            rows.forEach(row => row.remove());
 
-                seatsWithRows.forEach(({element, rowNo, seatNo}) => {
-                    if (fixSeatIds) {
-                        const newId = formatSeatId(rowNo, seatNo);
-                        element.setAttribute('id', newId);
-                        seatCount++;
-                    }
-                    parent.appendChild(element);
-                });
-            } else if (fixSeatIds) {
-                seatsWithRows.forEach(({element, rowNo, seatNo}) => {
-                    const newId = formatSeatId(rowNo, seatNo);
-                    element.setAttribute('id', newId);
-                    seatCount++;
-                });
-            }
+            // Переносим места в сектор с новыми ID
+            seatsWithRows.forEach(({element, rowNo, seatNo}) => {
+                const newId = formatSeatId(rowNo, seatNo);
+                element.setAttribute('id', newId);
+                seatCount++;
+                parent.appendChild(element);
+            });
         });
 
         // Очистка ID контуров
-        if (fixContourIds) {
-            const allElements = doc.querySelectorAll('[id]');
-            allElements.forEach(elem => {
-                const oldId = elem.getAttribute('id');
-                if (oldId && oldId.includes('Контур_') && !oldId.includes('Ряд_x5F_')) {
-                    const match = oldId.match(/(Контур_\d+)/);
-                    if (match && match[1] !== oldId) {
-                        elem.setAttribute('id', match[1]);
-                        contourCount++;
-                    }
+        const allElements = doc.querySelectorAll('[id]');
+        allElements.forEach(elem => {
+            const oldId = elem.getAttribute('id');
+            if (oldId && oldId.includes('Контур_') && !oldId.includes('Ряд_x5F_')) {
+                const match = oldId.match(/(Контур_\d+)/);
+                if (match && match[1] !== oldId) {
+                    elem.setAttribute('id', match[1]);
+                    contourCount++;
                 }
-            });
-        }
+            }
+        });
 
         let processedSvg = serializeSVG(doc);
         processedSvg = processedSvg.replace(/xmlns:ns\d+="[^"]*"/g, '');
