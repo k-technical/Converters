@@ -68,62 +68,7 @@ function rotateSVG(svgString) {
         cy = height / 2;
     }
     
-    // 1. Сохраняем все атрибуты родительских групп для текста
-    const textElements = svg.querySelectorAll('text');
-    const textData = [];
-    
-    textElements.forEach(text => {
-        // Собираем стили от всех родительских групп
-        const styles = {};
-        let parent = text.parentNode;
-        while (parent && parent !== svg) {
-            if (parent.tagName === 'g') {
-                const fill = parent.getAttribute('fill');
-                const fontFamily = parent.getAttribute('font-family');
-                const fontSize = parent.getAttribute('font-size');
-                const fontWeight = parent.getAttribute('font-weight');
-                if (fill && !styles.fill) styles.fill = fill;
-                if (fontFamily && !styles.fontFamily) styles.fontFamily = fontFamily;
-                if (fontSize && !styles.fontSize) styles.fontSize = fontSize;
-                if (fontWeight && !styles.fontWeight) styles.fontWeight = fontWeight;
-            }
-            parent = parent.parentNode;
-        }
-        
-        // Сохраняем данные текста
-        const textTransform = text.getAttribute('transform') || '';
-        const translateMatch = textTransform.match(/translate\(([-\d.]+)\s+([-\d.]+)\)/);
-        
-        let tx = 0, ty = 0;
-        if (translateMatch) {
-            tx = parseFloat(translateMatch[1]);
-            ty = parseFloat(translateMatch[2]);
-        }
-        
-        const tspan = text.querySelector('tspan');
-        let tspanX = 0, tspanY = 0;
-        if (tspan) {
-            tspanX = parseFloat(tspan.getAttribute('x')) || 0;
-            tspanY = parseFloat(tspan.getAttribute('y')) || 0;
-        }
-        
-        textData.push({
-            element: text,
-            tx: tx,
-            ty: ty,
-            tspanX: tspanX,
-            tspanY: tspanY,
-            tspanElement: tspan,
-            styles: styles,
-            textAnchor: text.getAttribute('text-anchor') || tspan?.getAttribute('text-anchor') || 'start',
-            fontSize: text.getAttribute('font-size') || styles.fontSize || '12',
-            fontFamily: text.getAttribute('font-family') || styles.fontFamily || 'Arial',
-            fill: text.getAttribute('fill') || styles.fill || '#000000',
-            content: text.textContent.trim()
-        });
-    });
-    
-    // 2. Поворачиваем всё на 180°
+    // 1. Поворачиваем всё на 180°
     const existingContent = document.createDocumentFragment();
     while (svg.firstChild) {
         existingContent.appendChild(svg.firstChild);
@@ -134,19 +79,49 @@ function rotateSVG(svgString) {
     transformGroup.appendChild(existingContent);
     svg.appendChild(transformGroup);
     
-    // 3. Удаляем старые тексты из transformGroup
-    const oldTexts = transformGroup.querySelectorAll('text');
-    oldTexts.forEach(t => t.remove());
+    // 2. Находим все <text>, разгруппировываем — вытаскиваем на верх transformGroup
+    const textElements = transformGroup.querySelectorAll('text');
+    const textData = [];
     
-    // 4. Создаём временный SVG для измерений
-    const measureSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    measureSvg.setAttribute('width', '1000');
-    measureSvg.setAttribute('height', '1000');
-    measureSvg.style.position = 'absolute';
-    measureSvg.style.visibility = 'hidden';
-    document.body.appendChild(measureSvg);
+    textElements.forEach(text => {
+        // Сохраняем данные
+        const textTransform = text.getAttribute('transform') || '';
+        const translateMatch = textTransform.match(/translate\(([-\d.]+)\s+([-\d.]+)\)/);
+        const tx = translateMatch ? parseFloat(translateMatch[1]) : 0;
+        const ty = translateMatch ? parseFloat(translateMatch[2]) : 0;
+        
+        const tspan = text.querySelector('tspan');
+        const tspanX = tspan ? parseFloat(tspan.getAttribute('x')) || 0 : 0;
+        const tspanY = tspan ? parseFloat(tspan.getAttribute('y')) || 0 : 0;
+        
+        // Собираем стили
+        const fill = text.getAttribute('fill') || '#000';
+        const fontSize = text.getAttribute('font-size') || '12';
+        const fontFamily = text.getAttribute('font-family') || 'Arial';
+        const content = text.textContent.trim();
+        
+        textData.push({ tx, ty, tspanX, tspanY, fill, fontSize, fontFamily, content });
+    });
     
-    // 5. Создаём Буквы_1 с правильно повёрнутым текстом
+    // Удаляем старые тексты
+    textElements.forEach(t => {
+        // Убираем пустые родительские группы если остались
+        const parent = t.parentNode;
+        t.remove();
+        if (parent && parent !== transformGroup && parent.childNodes.length === 0) {
+            parent.remove();
+        }
+    });
+    
+    // 3. Создаём временный SVG и измеряем каждый текст
+    const hiddenSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    hiddenSvg.setAttribute('width', '0');
+    hiddenSvg.setAttribute('height', '0');
+    hiddenSvg.style.position = 'absolute';
+    hiddenSvg.style.visibility = 'hidden';
+    document.body.appendChild(hiddenSvg);
+    
+    // 4. Для каждого текста вычисляем центр и оборачиваем
     const lettersGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     lettersGroup.setAttribute('id', 'Буквы_1');
     
@@ -156,33 +131,23 @@ function rotateSVG(svgString) {
         measureText.setAttribute('font-size', data.fontSize);
         measureText.setAttribute('font-family', data.fontFamily);
         measureText.textContent = data.content;
-        measureSvg.appendChild(measureText);
+        hiddenSvg.appendChild(measureText);
         
         const bbox = measureText.getBBox();
-        const textWidth = bbox.width;
-        const textHeight = bbox.height;
-        measureSvg.removeChild(measureText);
+        hiddenSvg.removeChild(measureText);
         
-        // Центр текста относительно tspan
-        let centerX = data.tspanX;
-        if (data.textAnchor === 'middle') {
-            centerX = data.tspanX;
-        } else if (data.textAnchor === 'end') {
-            centerX = data.tspanX - textWidth / 2;
-        } else {
-            centerX = data.tspanX + textWidth / 2;
-        }
-        const centerY = data.tspanY - textHeight / 3;
+        // Центр текста
+        const textCenterX = data.tspanX + bbox.width / 2;
+        const textCenterY = data.tspanY - bbox.height / 4;
         
-        // Оборачиваем в группу с поворотом вокруг центра текста
+        // Оборачиваем
         const wrapper = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        wrapper.setAttribute('transform', `rotate(180, ${centerX}, ${centerY})`);
+        wrapper.setAttribute('transform', `rotate(180, ${textCenterX}, ${textCenterY})`);
         
-        // Создаём новый text
         const newText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        newText.setAttribute('fill', data.fill);
         newText.setAttribute('font-size', data.fontSize);
         newText.setAttribute('font-family', data.fontFamily);
-        newText.setAttribute('fill', data.fill);
         newText.setAttribute('transform', `translate(${data.tx}, ${data.ty})`);
         
         const newTspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
@@ -195,9 +160,9 @@ function rotateSVG(svgString) {
         lettersGroup.appendChild(wrapper);
     });
     
-    // Убираем временный SVG
-    document.body.removeChild(measureSvg);
+    document.body.removeChild(hiddenSvg);
     
+    // 5. Добавляем Буквы_1 на верх transformGroup
     transformGroup.appendChild(lettersGroup);
     
     return serializeSVG(doc);
