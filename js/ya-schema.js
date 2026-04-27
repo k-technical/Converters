@@ -50,6 +50,7 @@ function processYa() {
     }
 }
 
+// Поворот SVG на 180 градусов вокруг центра viewBox
 function rotateSVG(svgString) {
     const doc = parseSVG(svgString);
     const svg = doc.documentElement;
@@ -63,13 +64,14 @@ function rotateSVG(svgString) {
         cx = parts[0] + parts[2] / 2;
         cy = parts[1] + parts[3] / 2;
     } else {
+        // Если нет viewBox, используем width/height
         const width = parseFloat(svg.getAttribute('width')) || 1000;
         const height = parseFloat(svg.getAttribute('height')) || 1000;
         cx = width / 2;
         cy = height / 2;
     }
     
-    // Оборачиваем всё содержимое в группу с поворотом на 180°
+    // Оборачиваем всё содержимое в группу с трансформацией
     const existingContent = document.createDocumentFragment();
     while (svg.firstChild) {
         existingContent.appendChild(svg.firstChild);
