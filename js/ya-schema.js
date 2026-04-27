@@ -54,7 +54,6 @@ function rotateSVG(svgString) {
     const doc = parseSVG(svgString);
     const svg = doc.documentElement;
     
-    // Ищем viewBox
     const viewBox = svg.getAttribute('viewBox');
     let cx, cy;
     
@@ -63,13 +62,11 @@ function rotateSVG(svgString) {
         cx = parts[0] + parts[2] / 2;
         cy = parts[1] + parts[3] / 2;
     } else {
-        const width = parseFloat(svg.getAttribute('width')) || 1000;
-        const height = parseFloat(svg.getAttribute('height')) || 1000;
-        cx = width / 2;
-        cy = height / 2;
+        cx = 500;
+        cy = 500;
     }
     
-    // 1. Оборачиваем всё содержимое в поворот на 180°
+    // 1. Поворачиваем всё на 180°
     const existingContent = document.createDocumentFragment();
     while (svg.firstChild) {
         existingContent.appendChild(svg.firstChild);
@@ -80,38 +77,48 @@ function rotateSVG(svgString) {
     transformGroup.appendChild(existingContent);
     svg.appendChild(transformGroup);
     
-    // 2. Находим все <text> (теперь они внутри перевёрнутой группы)
+    // 2. Вытаскиваем текст и сохраняем
     const textElements = transformGroup.querySelectorAll('text');
+    const textData = [];
     
-    // 3. Для каждого текста: поворачиваем его обратно вокруг его же координат
     textElements.forEach(text => {
-        const x = text.getAttribute('x');
-        const y = text.getAttribute('y');
-        
-        if (x && y) {
-            const wrapper = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            wrapper.setAttribute('transform', `rotate(180, ${x}, ${y})`);
-            
-            text.parentNode.insertBefore(wrapper, text);
-            wrapper.appendChild(text);
-        }
+        textData.push({
+            content: text.textContent,
+            x: parseFloat(text.getAttribute('x')) || 0,
+            y: parseFloat(text.getAttribute('y')) || 0,
+            fill: text.getAttribute('fill') || '#000000',
+            fontSize: text.getAttribute('font-size') || '12',
+            fontFamily: text.getAttribute('font-family') || 'Arial',
+            textAnchor: text.getAttribute('text-anchor') || 'start'
+        });
+        text.remove();
     });
     
-    // 4. Собираем все обёрнутые тексты в Буквы_1
+    // 3. Создаём Буквы_1: текст на отражённых координатах, без поворота
     const lettersGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     lettersGroup.setAttribute('id', 'Буквы_1');
     
-    const allWrappers = transformGroup.querySelectorAll('g[transform]');
-    allWrappers.forEach(wrapper => {
-        if (wrapper.querySelector('text') && wrapper.getAttribute('transform').includes('rotate')) {
-            lettersGroup.appendChild(wrapper);
-        }
+    textData.forEach(data => {
+        const newX = 2 * cx - data.x;
+        const newY = 2 * cy - data.y;
+        
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', newX);
+        text.setAttribute('y', newY);
+        text.setAttribute('fill', data.fill);
+        text.setAttribute('font-size', data.fontSize);
+        text.setAttribute('font-family', data.fontFamily);
+        text.setAttribute('text-anchor', data.textAnchor);
+        text.textContent = data.content;
+        
+        lettersGroup.appendChild(text);
     });
     
-    transformGroup.appendChild(lettersGroup);
+    svg.appendChild(lettersGroup);
     
     return serializeSVG(doc);
 }
+
 function buildGroupsFromLevels(data, svgContent) {
     let groups = [];
 
