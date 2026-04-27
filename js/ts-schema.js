@@ -1,8 +1,8 @@
-// Инициализация TS.Schema
+let tsSvgContent = '';
+
 function initTs() {
     const dropzone = document.getElementById('ts-dropzone');
     const fileInput = document.getElementById('ts-file');
-    const svgInput = document.getElementById('ts-svg');
 
     dropzone.addEventListener('click', () => fileInput.click());
 
@@ -39,32 +39,31 @@ function initTs() {
 function readTsFile(file) {
     const reader = new FileReader();
     reader.onload = (e) => {
-        document.getElementById('ts-svg').value = e.target.result;
+        tsSvgContent = e.target.result;
         const dropzone = document.getElementById('ts-dropzone');
         dropzone.classList.add('active');
         dropzone.querySelector('p').textContent = `Файл: ${file.name}`;
+        
+        const fileName = document.getElementById('ts-file-name');
+        fileName.textContent = `✓ Загружен: ${file.name}`;
+        fileName.style.display = 'block';
     };
     reader.readAsText(file);
 }
 
-// Обработка TS.Schema
 function processTs() {
     try {
-        let svgContent = document.getElementById('ts-svg').value.trim();
-        
-        if (!svgContent) {
-            throw new Error('Загрузите SVG файл или вставьте код');
+        if (!tsSvgContent) {
+            throw new Error('Загрузите SVG файл');
         }
 
-        const doc = parseSVG(svgContent);
+        const doc = parseSVG(tsSvgContent);
         
         let seatCount = 0;
         let contourCount = 0;
 
-        // Поиск групп с рядами
         const allRowGroups = doc.querySelectorAll('[tc-row-no]');
 
-        // Группировка рядов по родительским секторам
         const sectors = new Map();
         
         allRowGroups.forEach(row => {
@@ -78,7 +77,6 @@ function processTs() {
             }
         });
 
-        // Обработка каждого сектора
         sectors.forEach((rows, sectorName) => {
             const parent = rows[0].parentNode;
             const seatsWithRows = [];
@@ -97,10 +95,8 @@ function processTs() {
                 });
             });
 
-            // Убираем группы рядов
             rows.forEach(row => row.remove());
 
-            // Переносим места в сектор с новыми ID
             seatsWithRows.forEach(({element, rowNo, seatNo}) => {
                 const newId = formatSeatId(rowNo, seatNo);
                 element.setAttribute('id', newId);
@@ -109,7 +105,6 @@ function processTs() {
             });
         });
 
-        // Очистка ID контуров
         const allElements = doc.querySelectorAll('[id]');
         allElements.forEach(elem => {
             const oldId = elem.getAttribute('id');
@@ -140,13 +135,13 @@ function downloadTs() {
 }
 
 function clearTs() {
-    document.getElementById('ts-svg').value = '';
+    tsSvgContent = '';
     document.getElementById('ts-file').value = '';
     const dropzone = document.getElementById('ts-dropzone');
     dropzone.classList.remove('active');
     dropzone.querySelector('p').textContent = 'Перетащите SVG-файл сюда';
+    document.getElementById('ts-file-name').style.display = 'none';
     clearResult();
 }
 
-// Инициализация при загрузке
 document.addEventListener('DOMContentLoaded', initTs);
