@@ -1,6 +1,5 @@
 let qSvgContent = '';
 
-// Инициализация Q.Schema
 function initQ() {
     const dropzone = document.getElementById('q-dropzone');
     const fileInput = document.getElementById('q-file');
@@ -42,11 +41,14 @@ function readQFile(file) {
         const dropzone = document.getElementById('q-dropzone');
         dropzone.classList.add('active');
         dropzone.querySelector('p').textContent = `Файл: ${file.name}`;
+        
+        const fileName = document.getElementById('q-file-name');
+        fileName.textContent = `✓ Загружен: ${file.name}`;
+        fileName.style.display = 'block';
     };
     reader.readAsText(file);
 }
 
-// Извлечение мест из кода
 function extractSeatsFromCode(code) {
     const seats = [];
     const lines = code.split('\n');
@@ -112,7 +114,6 @@ function extractSeatsFromCode(code) {
         }
     });
     
-    // Убираем дубликаты
     const unique = [];
     const seen = new Set();
     
@@ -127,7 +128,6 @@ function extractSeatsFromCode(code) {
     return unique;
 }
 
-// Обработка Q.Schema
 function processQ() {
     try {
         if (!qSvgContent) {
@@ -140,16 +140,6 @@ function processQ() {
         }
 
         const seats = extractSeatsFromCode(code);
-        
-        let orderedSeats = {};
-        const seatsJson = document.getElementById('q-seats').value;
-        if (seatsJson.trim()) {
-            try {
-                orderedSeats = JSON.parse(seatsJson).ordered_seats || {};
-            } catch (e) {
-                console.warn('Не удалось распарсить JSON статусов');
-            }
-        }
 
         const svgDoc = parseSVG(qSvgContent);
         const svg = svgDoc.documentElement;
@@ -157,20 +147,9 @@ function processQ() {
         const seatsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         seatsGroup.setAttribute('id', 'seats-overlay');
 
-        let available = 0;
-        let sold = 0;
-
         seats.forEach(seat => {
-            let isAvailable = true;
-            for (const key in orderedSeats) {
-                if (key.includes(`;${seat.place}`)) {
-                    isAvailable = orderedSeats[key]?.available === 1;
-                    break;
-                }
-            }
-
             const seatId = formatSeatId(seat.row, seat.place);
-            const color = isAvailable ? '#4CAF50' : '#F44336';
+            const color = '#4CAF50';
 
             const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             circle.setAttribute('cx', seat.x);
@@ -179,7 +158,6 @@ function processQ() {
             circle.setAttribute('fill', color);
             circle.setAttribute('stroke', '#333');
             circle.setAttribute('stroke-width', '1');
-            circle.setAttribute('opacity', isAvailable ? '1' : '0.3');
             circle.setAttribute('id', seatId);
             seatsGroup.appendChild(circle);
 
@@ -192,8 +170,6 @@ function processQ() {
             text.setAttribute('fill', 'white');
             text.textContent = seat.place;
             seatsGroup.appendChild(text);
-
-            if (isAvailable) available++; else sold++;
         });
 
         svg.appendChild(seatsGroup);
@@ -201,7 +177,7 @@ function processQ() {
         const finalSVG = serializeSVG(svgDoc);
         
         showPreview(finalSVG);
-        setStatus(`✓ Создано: ${seats.length} мест (доступно: ${available}, продано: ${sold})`);
+        setStatus(`✓ Создано: ${seats.length} мест`);
         
         document.getElementById('q-download').style.display = 'block';
 
@@ -216,14 +192,13 @@ function downloadQ() {
 
 function clearQ() {
     document.getElementById('q-code').value = '';
-    document.getElementById('q-seats').value = '';
     document.getElementById('q-file').value = '';
     qSvgContent = '';
     const dropzone = document.getElementById('q-dropzone');
     dropzone.classList.remove('active');
     dropzone.querySelector('p').textContent = 'Загрузите SVG-схему';
+    document.getElementById('q-file-name').style.display = 'none';
     clearResult();
 }
 
-// Инициализация при загрузке
 document.addEventListener('DOMContentLoaded', initQ);
