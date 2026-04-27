@@ -1,36 +1,28 @@
 // Состояние приложения
-let currentTab = 'yandex';
+let currentTab = 'ya';
 let currentSvgResult = null;
 
 // Инициализация
 function initApp() {
-    // Обработчики табов
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', () => switchTab(tab.dataset.tab));
     });
-
-    // Показываем Яндекс по умолчанию
-    switchTab('yandex');
+    switchTab('ya');
 }
 
 // Переключение табов
 function switchTab(tabName) {
     currentTab = tabName;
     
-    // Обновляем активный таб
     document.querySelectorAll('.tab').forEach(t => {
         t.classList.toggle('active', t.dataset.tab === tabName);
     });
     
-    // Скрываем все панели
     document.querySelectorAll('.tab-panel').forEach(panel => {
         panel.style.display = 'none';
     });
     
-    // Показываем нужную
     document.getElementById(`panel-${tabName}`).style.display = 'flex';
-    
-    // Очищаем результат
     clearResult();
 }
 
@@ -63,7 +55,6 @@ function clearResult() {
     document.getElementById('status').className = 'stats';
     currentSvgResult = null;
     
-    // Скрываем кнопки скачивания
     document.querySelectorAll('[id$="-download"]').forEach(btn => {
         btn.style.display = 'none';
     });
