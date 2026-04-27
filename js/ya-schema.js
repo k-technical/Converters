@@ -55,7 +55,6 @@ function rotateSVG(svgString) {
     const doc = parseSVG(svgString);
     const svg = doc.documentElement;
     
-    // Ищем viewBox
     const viewBox = svg.getAttribute('viewBox');
     let cx, cy;
     
@@ -64,14 +63,13 @@ function rotateSVG(svgString) {
         cx = parts[0] + parts[2] / 2;
         cy = parts[1] + parts[3] / 2;
     } else {
-        // Если нет viewBox, используем width/height
         const width = parseFloat(svg.getAttribute('width')) || 1000;
         const height = parseFloat(svg.getAttribute('height')) || 1000;
         cx = width / 2;
         cy = height / 2;
     }
     
-    // Оборачиваем всё содержимое в группу с трансформацией
+    // 1. Поворачиваем всё на 180°
     const existingContent = document.createDocumentFragment();
     while (svg.firstChild) {
         existingContent.appendChild(svg.firstChild);
@@ -82,9 +80,53 @@ function rotateSVG(svgString) {
     transformGroup.appendChild(existingContent);
     svg.appendChild(transformGroup);
     
+    // 2. Находим все <text> внутри перевёрнутой группы
+    const textElements = transformGroup.querySelectorAll('text');
+    const lettersGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    lettersGroup.setAttribute('id', 'Буквы_1');
+    
+    textElements.forEach(text => {
+        // Получаем translate из transform текста
+        const textTransform = text.getAttribute('transform') || '';
+        const translateMatch = textTransform.match(/translate\(([-\d.]+)\s+([-\d.]+)\)/);
+        
+        let tx = 0, ty = 0;
+        if (translateMatch) {
+            tx = parseFloat(translateMatch[1]);
+            ty = parseFloat(translateMatch[2]);
+        }
+        
+        // Получаем x, y из первого tspan
+        const tspan = text.querySelector('tspan');
+        let tspanX = 0, tspanY = 0;
+        if (tspan) {
+            tspanX = parseFloat(tspan.getAttribute('x')) || 0;
+            tspanY = parseFloat(tspan.getAttribute('y')) || 0;
+        }
+        
+        // Абсолютные координаты текста
+        const absX = tx + tspanX;
+        const absY = ty + tspanY;
+        
+        // Оборачиваем текст в группу с обратным поворотом
+        const textWrapper = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        textWrapper.setAttribute('transform', `rotate(180, ${absX}, ${absY})`);
+        
+        // Перемещаем text в обёртку
+        text.parentNode.insertBefore(textWrapper, text);
+        textWrapper.appendChild(text);
+        
+        // Добавляем обёртку в Буквы_1
+        lettersGroup.appendChild(textWrapper);
+    });
+    
+    // 3. Добавляем Буквы_1 в перевёрнутую группу
+    if (textElements.length > 0) {
+        transformGroup.appendChild(lettersGroup);
+    }
+    
     return serializeSVG(doc);
 }
-
 function buildGroupsFromLevels(data, svgContent) {
     let groups = [];
 
