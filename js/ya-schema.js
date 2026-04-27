@@ -55,18 +55,35 @@ function rotateSVG(svgString) {
     const svg = doc.documentElement;
     
     const viewBox = svg.getAttribute('viewBox');
-    let cx, cy;
+    let vbX = 0, vbY = 0, vbW = 492, vbH = 502;
     
     if (viewBox) {
         const parts = viewBox.split(/\s+/).map(Number);
-        cx = parts[0] + parts[2] / 2;
-        cy = parts[1] + parts[3] / 2;
+        vbX = parts[0];
+        vbY = parts[1];
+        vbW = parts[2];
+        vbH = parts[3];
     } else {
-        cx = 500;
-        cy = 500;
+        vbW = parseFloat(svg.getAttribute('width')) || 492;
+        vbH = parseFloat(svg.getAttribute('height')) || 502;
     }
     
-    // 1. Поворачиваем всё на 180°
+    const cx = vbX + vbW / 2;
+    const cy = vbY + vbH / 2;
+    
+    // 1. Вынимаем все текстовые группы
+    const textGroups = svg.querySelectorAll('g');
+    const savedTextGroups = [];
+    
+    textGroups.forEach(g => {
+        const texts = g.querySelectorAll('text');
+        if (texts.length > 0) {
+            savedTextGroups.push(g);
+            g.remove();
+        }
+    });
+    
+    // 2. Поворачиваем всё остальное на 180°
     const existingContent = document.createDocumentFragment();
     while (svg.firstChild) {
         existingContent.appendChild(svg.firstChild);
@@ -77,41 +94,74 @@ function rotateSVG(svgString) {
     transformGroup.appendChild(existingContent);
     svg.appendChild(transformGroup);
     
-    // 2. Вытаскиваем текст и сохраняем
-    const textElements = transformGroup.querySelectorAll('text');
-    const textData = [];
-    
-    textElements.forEach(text => {
-        textData.push({
-            content: text.textContent,
-            x: parseFloat(text.getAttribute('x')) || 0,
-            y: parseFloat(text.getAttribute('y')) || 0,
-            fill: text.getAttribute('fill') || '#000000',
-            fontSize: text.getAttribute('font-size') || '12',
-            fontFamily: text.getAttribute('font-family') || 'Arial',
-            textAnchor: text.getAttribute('text-anchor') || 'start'
-        });
-        text.remove();
-    });
-    
-    // 3. Создаём Буквы_1: текст на отражённых координатах, без поворота
+    // 3. Буквы_1 — тексты без поворота, но с отражёнными координатами
     const lettersGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     lettersGroup.setAttribute('id', 'Буквы_1');
     
-    textData.forEach(data => {
-        const newX = 2 * cx - data.x;
-        const newY = 2 * cy - data.y;
+    savedTextGroups.forEach(g => {
+        // Копируем группу
+        const newG = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         
-        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        text.setAttribute('x', newX);
-        text.setAttribute('y', newY);
-        text.setAttribute('fill', data.fill);
-        text.setAttribute('font-size', data.fontSize);
-        text.setAttribute('font-family', data.fontFamily);
-        text.setAttribute('text-anchor', data.textAnchor);
-        text.textContent = data.content;
+        // Копируем атрибуты кроме transform
+        for (let i = 0; i < g.attributes.length; i++) {
+            const attr = g.attributes[i];
+            if (attr.name !== 'transform') {
+                newG.setAttribute(attr.name, attr.value);
+            }
+        }
         
-        lettersGroup.appendChild(text);
+        // Обрабатываем старый transform
+        const oldTransform = g.getAttribute('transform');
+        if (oldTransform) {
+            const translateMatch = oldTransform.match(/translate\(([^)]+)\)/);
+            if (translateMatch) {
+                const coords = translateMatch[1].split(/\s+/).map(Number);
+                // Отражаем translate
+                const newTx = 2 * cx - coords[0];
+                const newTy = 2 * cy - coords[1];
+                newG.setAttribute('transform', `translate(${newTx}, ${newTy})`);
+            }
+        }
+        
+        // Копируем все text/tspan и отражаем их координаты
+        const textElements = g.querySelectorAll('text');
+        textElements.forEach(text => {
+            const newText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            
+            for (let i = 0; i < text.attributes.length; i++) {
+                const attr = text.attributes[i];
+                newText.setAttribute(attr.name, attr.value);
+            }
+            
+            // Отражаем tspan координаты
+            const tspans = text.querySelectorAll('tspan');
+            tspans.forEach(tspan => {
+                const newTspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                
+                for (let i = 0; i < tspan.attributes.length; i++) {
+                    const attr = tspan.attributes[i];
+                    if (attr.name === 'x') {
+                        newTspan.setAttribute('x', 2 * cx - parseFloat(attr.value));
+                    } else if (attr.name === 'y') {
+                        newTspan.setAttribute('y', 2 * cy - parseFloat(attr.value));
+                    } else {
+                        newTspan.setAttribute(attr.name, attr.value);
+                    }
+                }
+                
+                newTspan.textContent = tspan.textContent;
+                newText.appendChild(newTspan);
+            });
+            
+            // Если нет tspan — копируем текст напрямую
+            if (tspans.length === 0) {
+                newText.textContent = text.textContent;
+            }
+            
+            newG.appendChild(newText);
+        });
+        
+        lettersGroup.appendChild(newG);
     });
     
     svg.appendChild(lettersGroup);
