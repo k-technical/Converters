@@ -79,90 +79,37 @@ function rotateSVG(svgString) {
     transformGroup.appendChild(existingContent);
     svg.appendChild(transformGroup);
     
-    // 2. Находим все <text>, разгруппировываем — вытаскиваем на верх transformGroup
+    // 2. Находим все <text> внутри повёрнутой схемы
     const textElements = transformGroup.querySelectorAll('text');
-    const textData = [];
     
-    textElements.forEach(text => {
-        // Сохраняем данные
-        const textTransform = text.getAttribute('transform') || '';
-        const translateMatch = textTransform.match(/translate\(([-\d.]+)\s+([-\d.]+)\)/);
-        const tx = translateMatch ? parseFloat(translateMatch[1]) : 0;
-        const ty = translateMatch ? parseFloat(translateMatch[2]) : 0;
-        
-        const tspan = text.querySelector('tspan');
-        const tspanX = tspan ? parseFloat(tspan.getAttribute('x')) || 0 : 0;
-        const tspanY = tspan ? parseFloat(tspan.getAttribute('y')) || 0 : 0;
-        
-        // Собираем стили
-        const fill = text.getAttribute('fill') || '#000';
-        const fontSize = text.getAttribute('font-size') || '12';
-        const fontFamily = text.getAttribute('font-family') || 'Arial';
-        const content = text.textContent.trim();
-        
-        textData.push({ tx, ty, tspanX, tspanY, fill, fontSize, fontFamily, content });
-    });
-    
-    // Удаляем старые тексты
-    textElements.forEach(t => {
-        // Убираем пустые родительские группы если остались
-        const parent = t.parentNode;
-        t.remove();
-        if (parent && parent !== transformGroup && parent.childNodes.length === 0) {
-            parent.remove();
-        }
-    });
-    
-    // 3. Создаём временный SVG и измеряем каждый текст
-    const hiddenSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    hiddenSvg.setAttribute('width', '0');
-    hiddenSvg.setAttribute('height', '0');
-    hiddenSvg.style.position = 'absolute';
-    hiddenSvg.style.visibility = 'hidden';
-    document.body.appendChild(hiddenSvg);
-    
-    // 4. Для каждого текста вычисляем центр и оборачиваем
+    // 3. Создаём Буквы_1
     const lettersGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     lettersGroup.setAttribute('id', 'Буквы_1');
     
-    textData.forEach(data => {
-        // Создаём текст для измерения
-        const measureText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        measureText.setAttribute('font-size', data.fontSize);
-        measureText.setAttribute('font-family', data.fontFamily);
-        measureText.textContent = data.content;
-        hiddenSvg.appendChild(measureText);
+    // 4. Для каждого текста
+    textElements.forEach(text => {
+        // Вытаскиваем из родительских групп — переносим прямо в transformGroup
+        // (временно, чтобы измерить)
+        transformGroup.appendChild(text);
         
-        const bbox = measureText.getBBox();
-        hiddenSvg.removeChild(measureText);
+        // Измеряем
+        const bbox = text.getBBox();
+        const centerX = bbox.x + bbox.width / 2;
+        const centerY = bbox.y + bbox.height / 2;
         
-        // Центр текста
-        const textCenterX = data.tspanX + bbox.width / 2;
-        const textCenterY = data.tspanY - bbox.height / 4;
-        
-        // Оборачиваем
+        // Создаём обёртку с поворотом вокруг центра
         const wrapper = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        wrapper.setAttribute('transform', `rotate(180, ${textCenterX}, ${textCenterY})`);
+        wrapper.setAttribute('transform', `rotate(180, ${centerX}, ${centerY})`);
         
-        const newText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        newText.setAttribute('fill', data.fill);
-        newText.setAttribute('font-size', data.fontSize);
-        newText.setAttribute('font-family', data.fontFamily);
-        newText.setAttribute('transform', `translate(${data.tx}, ${data.ty})`);
-        
-        const newTspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-        newTspan.setAttribute('x', data.tspanX);
-        newTspan.setAttribute('y', data.tspanY);
-        newTspan.textContent = data.content;
-        
-        newText.appendChild(newTspan);
-        wrapper.appendChild(newText);
+        // Вставляем обёртку перед текстом
+        transformGroup.insertBefore(wrapper, text);
+        // Переносим текст внутрь обёртки
+        wrapper.appendChild(text);
+        // Переносим обёртку в Буквы_1
         lettersGroup.appendChild(wrapper);
     });
     
-    document.body.removeChild(hiddenSvg);
-    
-    // 5. Добавляем Буквы_1 на верх transformGroup
+    // 5. Буквы_1 внутрь transformGroup
     transformGroup.appendChild(lettersGroup);
     
     return serializeSVG(doc);
