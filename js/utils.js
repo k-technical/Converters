@@ -81,12 +81,21 @@ function scaleSVGDocument(svgContent, scaleFactor) {
         }
     }
     
-    // 4. Масштабируем атрибут r у кругов (чтобы getSeatRadius показывал правильное значение!)
-    const circles = doc.querySelectorAll('circle[tc-seat-no]');
-    circles.forEach(circle => {
-        const r = circle.getAttribute('r');
+    // 4. Масштабируем атрибуты мест (r, cx, cy)
+    const seats = doc.querySelectorAll('circle[tc-seat-no]');
+    seats.forEach(seat => {
+        const r = seat.getAttribute('r');
+        const cx = seat.getAttribute('cx');
+        const cy = seat.getAttribute('cy');
+        
         if (r) {
-            circle.setAttribute('r', parseFloat(r) * scaleFactor);
+            seat.setAttribute('r', (parseFloat(r) * scaleFactor).toString());
+        }
+        if (cx) {
+            seat.setAttribute('cx', (parseFloat(cx) * scaleFactor).toString());
+        }
+        if (cy) {
+            seat.setAttribute('cy', (parseFloat(cy) * scaleFactor).toString());
         }
     });
     
