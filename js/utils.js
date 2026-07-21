@@ -51,7 +51,7 @@ function serializeSVG(doc) {
     return serializer.serializeToString(doc.documentElement);
 }
 
-// ============ НОВАЯ ФУНКЦИЯ: Масштабирование схемы ============
+// ============ МАСШТАБИРОВАНИЕ СХЕМЫ ============
 function scaleSVGDocument(svgContent, scaleFactor) {
     console.log('🔍 Масштабирование с коэффициентом:', scaleFactor);
     
@@ -60,7 +60,8 @@ function scaleSVGDocument(svgContent, scaleFactor) {
     const svg = doc.documentElement;
     
     // 1. Применяем transform к корневому элементу
-    svg.setAttribute('transform', `scale(${scaleFactor})`);
+    const currentTransform = svg.getAttribute('transform') || '';
+    svg.setAttribute('transform', `${currentTransform} scale(${scaleFactor})`.trim());
     
     // 2. Масштабируем width/height
     const width = svg.getAttribute('width');
@@ -80,8 +81,14 @@ function scaleSVGDocument(svgContent, scaleFactor) {
         }
     }
     
-    // ⚠️ НЕ ТРОГАЕМ АТРИБУТЫ ЭЛЕМЕНТОВ!
-    // transform на корневом элементе масштабирует всё визуально
+    // 4. Масштабируем атрибут r у кругов (чтобы getSeatRadius показывал правильное значение!)
+    const circles = doc.querySelectorAll('circle[tc-seat-no]');
+    circles.forEach(circle => {
+        const r = circle.getAttribute('r');
+        if (r) {
+            circle.setAttribute('r', parseFloat(r) * scaleFactor);
+        }
+    });
     
     const serializer = new XMLSerializer();
     return serializer.serializeToString(doc.documentElement);
