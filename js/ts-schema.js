@@ -16,7 +16,7 @@ function downloadSVG(svgContent, filename = 'result.svg') {
     URL.revokeObjectURL(url);
 }
 
-// ============ ФУНКЦИИ ИЗ app.js (без дублирования переменной) ============
+// ============ ФУНКЦИИ ИЗ app.js ============
 function setStatus(message, isError = false) {
     const status = document.getElementById('status');
     if (status) {
@@ -88,7 +88,7 @@ function scaleSVGDocument(svgContent, scaleFactor) {
     const doc = parser.parseFromString(svgContent, 'image/svg+xml');
     const svg = doc.documentElement;
     
-    // Масштабируем width/height
+    // 1. Масштабируем width/height
     const width = svg.getAttribute('width');
     const height = svg.getAttribute('height');
     if (width && height) {
@@ -97,41 +97,57 @@ function scaleSVGDocument(svgContent, scaleFactor) {
         if (!isNaN(w) && !isNaN(h)) {
             svg.setAttribute('width', w * scaleFactor);
             svg.setAttribute('height', h * scaleFactor);
+            console.log('  width:', w, '→', w * scaleFactor);
+            console.log('  height:', h, '→', h * scaleFactor);
         }
     }
     
-    // Масштабируем viewBox (главный способ!)
+    // 2. Масштабируем viewBox
     const viewBox = svg.getAttribute('viewBox');
     if (viewBox) {
         const parts = viewBox.split(/[\s,]+/).map(Number);
         if (parts.length === 4) {
             const [x, y, w, h] = parts;
             svg.setAttribute('viewBox', `${x} ${y} ${w * scaleFactor} ${h * scaleFactor}`);
+            console.log('  viewBox:', viewBox, '→', `${x} ${y} ${w * scaleFactor} ${h * scaleFactor}`);
         }
+    } else {
+        console.warn('⚠️ viewBox не найден, создаем...');
+        const w = parseFloat(svg.getAttribute('width')) || 800;
+        const h = parseFloat(svg.getAttribute('height')) || 600;
+        svg.setAttribute('viewBox', `0 0 ${w * scaleFactor} ${h * scaleFactor}`);
     }
     
-    // ⚠️ НЕ ТРОГАЕМ КООРДИНАТЫ ЭЛЕМЕНТОВ
-    
+    // ⚠️ НЕ ТРОГАЕМ АТРИБУТЫ ЭЛЕМЕНТОВ!
     const serializer = new XMLSerializer();
     return serializer.serializeToString(doc.documentElement);
 }
 
-function shrinkSeatsRadius(svgContent, shrinkFactor = 0.8) {
-    console.log('🔍 Уменьшение радиуса мест на', (1 - shrinkFactor) * 100, '%');
+function shrinkSeatsRadius(svgContent, shrinkFactor) {
+    console.log('🔍 Уменьшение радиуса мест с коэффициентом:', shrinkFactor);
     const parser = new DOMParser();
     const doc = parser.parseFromString(svgContent, 'image/svg+xml');
     const seats = doc.querySelectorAll('circle[tc-seat-no]');
     
+    console.log('  Найдено мест:', seats.length);
     let count = 0;
+    
     seats.forEach(seat => {
         const r = seat.getAttribute('r');
         if (r) {
-            const newR = parseFloat(r) * shrinkFactor;
+            const oldR = parseFloat(r);
+            const newR = oldR * shrinkFactor;
             seat.setAttribute('r', newR.toString());
             count++;
+            if (count <= 3) {
+                console.log(`  Место ${count}: ${oldR}px → ${newR}px`);
+            }
         }
     });
     
+    if (count > 3) {
+        console.log(`  ... и еще ${count - 3} мест`);
+    }
     console.log('  Уменьшено мест:', count);
     
     const serializer = new XMLSerializer();
@@ -230,29 +246,23 @@ function processTs() {
         }
 
         // 2. Параметры
-        const TARGET_RADIUS_BEFORE_SHRINK = 15; // Радиус ДО уменьшения
-        const TARGET_FINAL_RADIUS = 6; // Желаемый финальный радиус (6px)
+        const TARGET_RADIUS_BEFORE_SHRINK = 15;
+        const TARGET_FINAL_RADIUS = 6;
         
-        // Коэффициент масштабирования схемы
         const scaleFactor = TARGET_RADIUS_BEFORE_SHRINK / originalRadius;
-        
-        // Коэффициент уменьшения каждого места (индивидуальный!)
         const shrinkFactor = TARGET_FINAL_RADIUS / originalRadius;
         
         console.log('📊 Параметры:');
         console.log('  Исходный радиус:', originalRadius, 'px');
-        console.log('  Радиус ДО уменьшения:', TARGET_RADIUS_BEFORE_SHRINK, 'px');
-        console.log('  Желаемый финальный радиус:', TARGET_FINAL_RADIUS, 'px');
-        console.log('  Коэффициент масштаба схемы:', scaleFactor.toFixed(4), 'x');
-        console.log('  Коэффициент уменьшения мест:', shrinkFactor.toFixed(4), 'x');
-        console.log('  Уменьшение:', ((1 - shrinkFactor) * 100).toFixed(1), '%');
+        console.log('  Коэффициент масштаба:', scaleFactor.toFixed(4), 'x');
+        console.log('  Коэффициент уменьшения:', shrinkFactor.toFixed(4), 'x');
 
-        // 3. Шаг 1: Масштабируем схему
+        // 3. Шаг 1: Масштабируем схему (ТОЛЬКО viewBox!)
         console.log('⏳ Шаг 1: Масштабирование схемы...');
         let processedSvg = scaleSVGDocument(tsSvgContent, scaleFactor);
         console.log('✅ Масштабирование завершено');
 
-        // 4. Шаг 2: Уменьшаем места (индивидуальный коэффициент!)
+        // 4. Шаг 2: Уменьшаем места
         console.log('⏳ Шаг 2: Уменьшение мест...');
         processedSvg = shrinkSeatsRadius(processedSvg, shrinkFactor);
         console.log('✅ Уменьшение мест завершено');
@@ -260,7 +270,6 @@ function processTs() {
         // 5. Проверяем финальный радиус
         const finalRadius = getSeatRadius(processedSvg);
         console.log('📏 Финальный числовой радиус:', finalRadius, 'px');
-        console.log('📏 Финальный визуальный радиус:', (finalRadius * scaleFactor).toFixed(1), 'px');
 
         // 6. Обрабатываем ID и стили
         const parser = new DOMParser();
@@ -336,10 +345,9 @@ function processTs() {
 
         showPreview(finalSvg);
         
-        const visualRadius = (finalRadius * scaleFactor).toFixed(1);
         setStatus(
             `✅ Обработано: ${seatCount} мест, ${contourCount} контуров, ` +
-            `числовой радиус: ${finalRadius}px, визуальный: ${visualRadius}px`
+            `финальный радиус: ${finalRadius}px`
         );
         
         const downloadBtn = document.getElementById('ts-download');
