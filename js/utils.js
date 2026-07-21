@@ -100,16 +100,18 @@ function scaleSVGDocument(svgContent, scaleFactor) {
             }
         });
         
-        // Масштабируем path
+        // ============ МАСШТАБИРУЕМ PATH (исправленная версия) ============
         if (el.tagName === 'path' || el.tagName === 'PATH') {
             const d = el.getAttribute('d');
             if (d) {
-                const scaledD = d.replace(/(\d+\.?\d*)/g, (match) => {
+                // Масштабируем ВСЕ числа
+                const scaledD = d.replace(/-?\d+\.?\d*/g, (match) => {
                     return (parseFloat(match) * scaleFactor).toString();
                 });
                 el.setAttribute('d', scaledD);
             }
         }
+        // ================================================================
     });
     
     const serializer = new XMLSerializer();
