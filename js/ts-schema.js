@@ -174,8 +174,11 @@ function processTs() {
         console.log('✅ Найден радиус:', originalRadius, 'px');
 
         // 2. Параметры
-        const TARGET_RADIUS = 15;
-        const SHRINK_FACTOR = 0.8;
+        const TARGET_RADIUS = 7.5; // Целевой радиус ДО уменьшения (чтобы после уменьшения на 20% получить 6px)
+const SHRINK_FACTOR = 0.8; // Уменьшение на 20%
+
+// 7.5 × 0.8 = 6px (радиус)
+// 6 × 2 = 12px (диаметр) ✅
         
         const scaleFactor = TARGET_RADIUS / originalRadius;
         
