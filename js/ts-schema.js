@@ -1,6 +1,6 @@
 let tsSvgContent = '';
 
-// ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (добавлены сюда) ============
+// ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ============
 
 function getSeatRadius(svgContent) {
     try {
@@ -75,7 +75,72 @@ function shrinkSeats(svgContent, shrinkFactor = 0.8) {
     return serializer.serializeToString(doc.documentElement);
 }
 
-// ============ ФУНКЦИИ ИНИЦИАЛИЗАЦИИ ============
+// ============ ДОБАВИТЬ ЭТУ ФУНКЦИЮ ============
+function formatSeatId(row, place) {
+    return `Ряд_x5F_${row}_x7C_${place}-${place}`;
+}
+
+// ============ ФУНКЦИИ app.js (добавлены сюда на всякий случай) ============
+
+function setStatus(message, isError = false) {
+    const status = document.getElementById('status');
+    if (status) {
+        status.textContent = message;
+        status.className = isError ? 'stats error active' : 'stats active';
+    }
+}
+
+function showPreview(svgContent) {
+    const container = document.getElementById('previewContainer');
+    if (container) {
+        container.innerHTML = svgContent;
+    }
+    currentSvgResult = svgContent;
+}
+
+function handleError(error, fallbackMessage = 'Произошла ошибка') {
+    const message = error.message || fallbackMessage;
+    setStatus(message, true);
+    console.error(error);
+}
+
+function downloadCurrentResult(filename) {
+    if (!currentSvgResult) {
+        setStatus('Нет результата для скачивания', true);
+        return;
+    }
+    downloadSVG(currentSvgResult, filename);
+}
+
+function clearResult() {
+    const container = document.getElementById('previewContainer');
+    if (container) container.innerHTML = '';
+    const status = document.getElementById('status');
+    if (status) status.className = 'stats';
+    currentSvgResult = null;
+    document.querySelectorAll('[id$="-download"]').forEach(btn => {
+        btn.style.display = 'none';
+    });
+}
+
+function downloadSVG(svgContent, filename = 'result.svg') {
+    if (!svgContent.startsWith('<?xml')) {
+        svgContent = '<?xml version="1.0" encoding="utf-8"?>\n' + svgContent;
+    }
+    const blob = new Blob([svgContent], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// ============ ОСТАЛЬНОЙ КОД ts-schema.js ============
+
+let currentSvgResult = null;
 
 function initTs() {
     const dropzone = document.getElementById('ts-dropzone');
@@ -128,8 +193,6 @@ function readTsFile(file) {
     reader.readAsText(file);
 }
 
-// ============ ОСНОВНАЯ ФУНКЦИЯ ОБРАБОТКИ ============
-
 function processTs() {
     try {
         if (!tsSvgContent) {
@@ -151,14 +214,12 @@ function processTs() {
         
         console.log('✅ Найден радиус:', originalRadius, 'px');
 
-        // 2. Проверяем, что радиус не нулевой
         if (originalRadius === 0) {
             setStatus('Радиус места равен 0. Проверьте SVG файл', true);
             console.error('❌ Радиус равен 0');
             return;
         }
 
-        // 3. Вычисляем коэффициент масштабирования
         const TARGET_RADIUS = 15;
         const scaleFactor = TARGET_RADIUS / originalRadius;
         
@@ -167,29 +228,24 @@ function processTs() {
         console.log('  Целевой радиус:', TARGET_RADIUS, 'px');
         console.log('  Коэффициент:', scaleFactor.toFixed(4), 'x');
 
-        // 4. Этап 1: Масштабируем всю схему
         console.log('⏳ Шаг 1: Масштабирование схемы...');
         let processedSvg = scaleSVGDocument(tsSvgContent, scaleFactor);
         console.log('✅ Масштабирование завершено');
 
-        // 5. Этап 2: Уменьшаем каждое место на 20%
         const SHRINK_FACTOR = 0.8;
         console.log('⏳ Шаг 2: Уменьшение мест на', (1 - SHRINK_FACTOR) * 100, '%...');
         processedSvg = shrinkSeats(processedSvg, SHRINK_FACTOR);
         console.log('✅ Уменьшение мест завершено');
 
-        // 6. Проверяем финальный радиус
         const finalRadius = getSeatRadius(processedSvg);
         console.log('📏 Финальный радиус:', finalRadius, 'px');
 
-        // 7. Парсим обработанный SVG для дальнейшей обработки
         const parser = new DOMParser();
         const doc = parser.parseFromString(processedSvg, 'image/svg+xml');
         
         let seatCount = 0;
         let contourCount = 0;
 
-        // 8. Группировка по секторам
         const allRowGroups = doc.querySelectorAll('[tc-row-no]');
         console.log('🔍 Найдено групп с tc-row-no:', allRowGroups.length);
         
@@ -208,7 +264,6 @@ function processTs() {
         
         console.log('📂 Найдено секторов:', sectors.size);
 
-        // 9. Обработка каждого сектора
         sectors.forEach((rows, sectorName) => {
             const parent = rows[0].parentNode;
             const seatsWithRows = [];
@@ -227,10 +282,8 @@ function processTs() {
                 });
             });
 
-            // Удаляем ряды
             rows.forEach(row => row.remove());
 
-            // Добавляем места напрямую в сектор
             seatsWithRows.forEach(({element, rowNo, seatNo}) => {
                 const newId = formatSeatId(rowNo, seatNo);
                 element.setAttribute('id', newId);
@@ -242,7 +295,6 @@ function processTs() {
             });
         });
 
-        // 10. Очистка ID контуров
         const allElements = doc.querySelectorAll('[id]');
         allElements.forEach(elem => {
             const oldId = elem.getAttribute('id');
@@ -255,12 +307,10 @@ function processTs() {
             }
         });
 
-        // 11. Сериализация и очистка
         const serializer = new XMLSerializer();
         let finalSvg = serializer.serializeToString(doc.documentElement);
         finalSvg = finalSvg.replace(/xmlns:ns\d+="[^"]*"/g, '');
 
-        // 12. Показываем результат
         showPreview(finalSvg);
         
         setStatus(
