@@ -89,10 +89,10 @@ function scaleSVGDocument(svgContent, scaleFactor) {
     const doc = parser.parseFromString(svgContent, 'image/svg+xml');
     const svg = doc.documentElement;
     
-    // 1. Применяем transform
+    // 1. Применяем transform к корневому элементу
     svg.setAttribute('transform', `scale(${scaleFactor})`);
     
-    // 2. Масштабируем width/height (если есть)
+    // 2. Масштабируем width/height
     const width = svg.getAttribute('width');
     const height = svg.getAttribute('height');
     if (width && height) {
@@ -100,7 +100,7 @@ function scaleSVGDocument(svgContent, scaleFactor) {
         svg.setAttribute('height', parseFloat(height) * scaleFactor);
     }
     
-    // 3. Масштабируем viewBox (если есть)
+    // 3. Масштабируем viewBox
     const viewBox = svg.getAttribute('viewBox');
     if (viewBox) {
         const parts = viewBox.split(/[\s,]+/).map(Number);
@@ -110,7 +110,18 @@ function scaleSVGDocument(svgContent, scaleFactor) {
         }
     }
     
-    // 4. НИЧЕГО БОЛЬШЕ НЕ ТРОГАЕМ!
+    // 4. Масштабируем атрибуты всех элементов
+    const allElements = doc.querySelectorAll('[cx], [cy], [r], [x], [y], [width], [height]');
+    allElements.forEach(el => {
+        ['cx', 'cy', 'r', 'x', 'y', 'width', 'height'].forEach(attr => {
+            if (el.hasAttribute(attr)) {
+                const value = parseFloat(el.getAttribute(attr));
+                if (!isNaN(value)) {
+                    el.setAttribute(attr, (value * scaleFactor).toString());
+                }
+            }
+        });
+    });
     
     const serializer = new XMLSerializer();
     return serializer.serializeToString(doc.documentElement);
@@ -239,12 +250,12 @@ function processTs() {
         console.log('  Финальный радиус:', TARGET_RADIUS * SHRINK_FACTOR, 'px');
         console.log('  Коэффициент масштаба:', scaleFactor.toFixed(4), 'x');
 
-        // ============ ШАГ 1: СНАЧАЛА УМЕНЬШАЕМ МЕСТА ============
+        // 3. Шаг 1: Уменьшаем места на 20%
         console.log('⏳ Шаг 1: Уменьшение мест на 20%...');
         let processedSvg = shrinkSeatsRadius(tsSvgContent, SHRINK_FACTOR);
         console.log('✅ Уменьшение мест завершено');
 
-        // ============ ШАГ 2: ПОТОМ МАСШТАБИРУЕМ СХЕМУ ============
+        // 4. Шаг 2: Масштабируем схему
         console.log('⏳ Шаг 2: Масштабирование схемы...');
         processedSvg = scaleSVGDocument(processedSvg, scaleFactor);
         console.log('✅ Масштабирование завершено');
