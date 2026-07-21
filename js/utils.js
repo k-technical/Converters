@@ -51,7 +51,7 @@ function serializeSVG(doc) {
     return serializer.serializeToString(doc.documentElement);
 }
 
-// ============ МАСШТАБИРОВАНИЕ СХЕМЫ ============
+// ============ МАСШТАБИРОВАНИЕ ВСЕЙ СХЕМЫ ============
 function scaleSVGDocument(svgContent, scaleFactor) {
     console.log('🔍 Масштабирование с коэффициентом:', scaleFactor);
     
@@ -82,24 +82,32 @@ function scaleSVGDocument(svgContent, scaleFactor) {
         svg.setAttribute('viewBox', `0 0 ${w * scaleFactor} ${h * scaleFactor}`);
     }
     
-    // 3. УДАЛЯЕМ transform (чтобы не было двойного масштабирования)
+    // 3. УДАЛЯЕМ transform
     svg.removeAttribute('transform');
     
-    // 4. Масштабируем координаты мест
-    const seats = doc.querySelectorAll('circle[tc-seat-no]');
-    seats.forEach(seat => {
-        const r = seat.getAttribute('r');
-        const cx = seat.getAttribute('cx');
-        const cy = seat.getAttribute('cy');
+    // 4. Масштабируем ВСЕ элементы с координатами
+    const allElements = doc.querySelectorAll('*');
+    const attrsToScale = ['cx', 'cy', 'r', 'x', 'y', 'width', 'height'];
+    
+    allElements.forEach(el => {
+        attrsToScale.forEach(attr => {
+            if (el.hasAttribute(attr)) {
+                const value = parseFloat(el.getAttribute(attr));
+                if (!isNaN(value) && isFinite(value)) {
+                    el.setAttribute(attr, (value * scaleFactor).toString());
+                }
+            }
+        });
         
-        if (r) {
-            seat.setAttribute('r', (parseFloat(r) * scaleFactor).toString());
-        }
-        if (cx) {
-            seat.setAttribute('cx', (parseFloat(cx) * scaleFactor).toString());
-        }
-        if (cy) {
-            seat.setAttribute('cy', (parseFloat(cy) * scaleFactor).toString());
+        // Для путей — масштабируем координаты в d
+        if (el.tagName === 'path' || el.tagName === 'PATH') {
+            const d = el.getAttribute('d');
+            if (d) {
+                const scaledD = d.replace(/(\d+\.?\d*)/g, (match) => {
+                    return (parseFloat(match) * scaleFactor).toString();
+                });
+                el.setAttribute('d', scaledD);
+            }
         }
     });
     
