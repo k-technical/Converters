@@ -246,10 +246,10 @@ function processTs() {
         }
 
         // 2. Параметры
-        const TARGET_RADIUS_BEFORE_SHRINK = 15;
         const TARGET_FINAL_RADIUS = 6;
+        const TARGET_VISUAL_RADIUS = 15;
         
-        const scaleFactor = TARGET_RADIUS_BEFORE_SHRINK / originalRadius;
+        const scaleFactor = TARGET_VISUAL_RADIUS / originalRadius;
         const shrinkFactor = TARGET_FINAL_RADIUS / originalRadius;
         
         console.log('📊 Параметры:');
@@ -257,7 +257,7 @@ function processTs() {
         console.log('  Коэффициент масштаба:', scaleFactor.toFixed(4), 'x');
         console.log('  Коэффициент уменьшения:', shrinkFactor.toFixed(4), 'x');
 
-        // 3. Шаг 1: Масштабируем схему (ТОЛЬКО viewBox!)
+        // 3. Шаг 1: Масштабируем схему (с пересчетом viewBox!)
         console.log('⏳ Шаг 1: Масштабирование схемы...');
         let processedSvg = scaleSVGDocument(tsSvgContent, scaleFactor);
         console.log('✅ Масштабирование завершено');
