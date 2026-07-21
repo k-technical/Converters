@@ -1,136 +1,39 @@
 let tsSvgContent = '';
 
-// ============ ФУНКЦИИ ИЗ app.js ============
-function setStatus(message, isError = false) {
-    const status = document.getElementById('status');
-    if (status) {
-        status.textContent = message;
-        status.className = isError ? 'stats error active' : 'stats active';
-    }
-}
-
-function showPreview(svgContent) {
-    const container = document.getElementById('previewContainer');
-    if (container) {
-        container.innerHTML = svgContent;
-    }
-    if (typeof currentSvgResult !== 'undefined') {
-        currentSvgResult = svgContent;
-    }
-}
-
-function handleError(error, fallbackMessage = 'Произошла ошибка') {
-    const message = error.message || fallbackMessage;
-    setStatus(message, true);
-    console.error(error);
-}
-
-function downloadCurrentResult(filename) {
-    if (typeof currentSvgResult === 'undefined' || !currentSvgResult) {
-        setStatus('Нет результата для скачивания', true);
-        return;
-    }
-    downloadSVG(currentSvgResult, filename);
-}
-
-function clearResult() {
-    const container = document.getElementById('previewContainer');
-    if (container) container.innerHTML = '';
-    const status = document.getElementById('status');
-    if (status) status.className = 'stats';
-    if (typeof currentSvgResult !== 'undefined') {
-        currentSvgResult = null;
-    }
-    document.querySelectorAll('[id$="-download"]').forEach(btn => {
-        btn.style.display = 'none';
-    });
-}
-
-// ============ ОСНОВНЫЕ ФУНКЦИИ ============
-
-function getSeatRadius(svgContent) {
-    try {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(svgContent, 'image/svg+xml');
-        const firstSeat = doc.querySelector('circle[tc-seat-no]');
-        if (firstSeat) {
-            const r = firstSeat.getAttribute('r');
-            if (r) {
-                return parseFloat(r);
-            }
-        }
-        return null;
-    } catch(e) {
-        console.error('Ошибка в getSeatRadius:', e);
-        return null;
-    }
-}
-
-function shrinkSeatsRadius(svgContent, shrinkFactor) {
-    console.log('🔍 Уменьшение радиуса мест с коэффициентом:', shrinkFactor);
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(svgContent, 'image/svg+xml');
-    const seats = doc.querySelectorAll('circle[tc-seat-no]');
-    
-    console.log('  Найдено мест:', seats.length);
-    let count = 0;
-    
-    seats.forEach(seat => {
-        const r = seat.getAttribute('r');
-        if (r) {
-            const oldR = parseFloat(r);
-            const newR = oldR * shrinkFactor;
-            seat.setAttribute('r', newR.toString());
-            count++;
-        }
-    });
-    
-    console.log('  Уменьшено мест:', count);
-    
-    const serializer = new XMLSerializer();
-    return serializer.serializeToString(doc.documentElement);
-}
-
-// ============ ФУНКЦИИ ИНИЦИАЛИЗАЦИИ ============
-
 function initTs() {
     const dropzone = document.getElementById('ts-dropzone');
     const fileInput = document.getElementById('ts-file');
 
-    if (dropzone) {
-        dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('click', () => fileInput.click());
 
-        dropzone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropzone.style.borderColor = '#58a6ff';
-            dropzone.style.background = 'rgba(88, 166, 255, 0.1)';
-        });
+    dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.style.borderColor = '#58a6ff';
+        dropzone.style.background = 'rgba(88, 166, 255, 0.1)';
+    });
 
-        dropzone.addEventListener('dragleave', () => {
-            dropzone.style.borderColor = '#30363d';
-            dropzone.style.background = '#161b22';
-        });
+    dropzone.addEventListener('dragleave', () => {
+        dropzone.style.borderColor = '#30363d';
+        dropzone.style.background = '#161b22';
+    });
 
-        dropzone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropzone.style.borderColor = '#30363d';
-            dropzone.style.background = '#161b22';
-            
-            const file = e.dataTransfer.files[0];
-            if (file && file.name.endsWith('.svg')) {
-                readTsFile(file);
-            } else {
-                setStatus('Пожалуйста, выберите SVG файл', true);
-            }
-        });
-    }
+    dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.style.borderColor = '#30363d';
+        dropzone.style.background = '#161b22';
+        
+        const file = e.dataTransfer.files[0];
+        if (file && file.name.endsWith('.svg')) {
+            readTsFile(file);
+        } else {
+            setStatus('Пожалуйста, выберите SVG файл', true);
+        }
+    });
 
-    if (fileInput) {
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) readTsFile(file);
-        });
-    }
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) readTsFile(file);
+    });
 }
 
 function readTsFile(file) {
@@ -138,21 +41,15 @@ function readTsFile(file) {
     reader.onload = (e) => {
         tsSvgContent = e.target.result;
         const dropzone = document.getElementById('ts-dropzone');
-        if (dropzone) {
-            dropzone.classList.add('active');
-            dropzone.querySelector('p').textContent = `Файл: ${file.name}`;
-        }
+        dropzone.classList.add('active');
+        dropzone.querySelector('p').textContent = `Файл: ${file.name}`;
         
         const fileName = document.getElementById('ts-file-name');
-        if (fileName) {
-            fileName.textContent = `✓ Загружен: ${file.name}`;
-            fileName.style.display = 'block';
-        }
+        fileName.textContent = `✓ Загружен: ${file.name}`;
+        fileName.style.display = 'block';
     };
     reader.readAsText(file);
 }
-
-// ============ ОСНОВНАЯ ФУНКЦИЯ ОБРАБОТКИ ============
 
 function processTs() {
     try {
@@ -160,56 +57,13 @@ function processTs() {
             throw new Error('Загрузите SVG файл');
         }
 
-        console.log('==================== НАЧАЛО ОБРАБОТКИ ====================');
-
-        // 1. Находим радиус места
-        console.log('🔍 Поиск радиуса места...');
-        const originalRadius = getSeatRadius(tsSvgContent);
-        
-        if (!originalRadius) {
-            setStatus('❌ Не удалось определить радиус места (атрибут r)', true);
-            return;
-        }
-        
-        console.log('✅ Найден радиус:', originalRadius, 'px');
-
-        // 2. Параметры
-        const TARGET_RADIUS = 7.5; // Целевой радиус ДО уменьшения (чтобы после уменьшения на 20% получить 6px)
-const SHRINK_FACTOR = 0.8; // Уменьшение на 20%
-
-// 7.5 × 0.8 = 6px (радиус)
-// 6 × 2 = 12px (диаметр) ✅
-        
-        const scaleFactor = TARGET_RADIUS / originalRadius;
-        
-        console.log('📊 Параметры:');
-        console.log('  Исходный радиус:', originalRadius, 'px');
-        console.log('  Целевой радиус (до уменьшения):', TARGET_RADIUS, 'px');
-        console.log('  Финальный радиус:', TARGET_RADIUS * SHRINK_FACTOR, 'px');
-        console.log('  Коэффициент масштаба:', scaleFactor.toFixed(4), 'x');
-
-        // 3. Шаг 1: Уменьшаем места на 20%
-        console.log('⏳ Шаг 1: Уменьшение мест на 20%...');
-        let processedSvg = shrinkSeatsRadius(tsSvgContent, SHRINK_FACTOR);
-        console.log('✅ Уменьшение мест завершено');
-
-        // 4. Шаг 2: Масштабируем схему (функция из utils.js)
-        console.log('⏳ Шаг 2: Масштабирование схемы...');
-        processedSvg = scaleSVGDocument(processedSvg, scaleFactor);
-        console.log('✅ Масштабирование завершено');
-
-        // 5. Проверяем финальный радиус
-        const finalRadius = getSeatRadius(processedSvg);
-        console.log('📏 Финальный числовой радиус:', finalRadius, 'px');
-
-        // 6. Дальнейшая обработка (ID, стили и т.д.)
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(processedSvg, 'image/svg+xml');
+        const doc = parseSVG(tsSvgContent);
         
         let seatCount = 0;
         let contourCount = 0;
 
         const allRowGroups = doc.querySelectorAll('[tc-row-no]');
+
         const sectors = new Map();
         
         allRowGroups.forEach(row => {
@@ -223,7 +77,7 @@ const SHRINK_FACTOR = 0.8; // Уменьшение на 20%
             }
         });
 
-        sectors.forEach((rows) => {
+        sectors.forEach((rows, sectorName) => {
             const parent = rows[0].parentNode;
             const seatsWithRows = [];
             
@@ -244,14 +98,14 @@ const SHRINK_FACTOR = 0.8; // Уменьшение на 20%
             rows.forEach(row => row.remove());
 
             seatsWithRows.forEach(({element, rowNo, seatNo}) => {
-                const newId = formatSeatId(rowNo, seatNo);
-                element.setAttribute('id', newId);
-                element.setAttribute('fill', 'none');
-                element.setAttribute('stroke', '#AEAEAE');
-                element.setAttribute('stroke-width', '1');
-                seatCount++;
-                parent.appendChild(element);
-            });
+    const newId = formatSeatId(rowNo, seatNo);
+    element.setAttribute('id', newId);
+    element.setAttribute('fill', 'none');
+    element.setAttribute('stroke', '#AEAEAE');
+    element.setAttribute('stroke-width', '1');
+    seatCount++;
+    parent.appendChild(element);
+});
         });
 
         const allElements = doc.querySelectorAll('[id]');
@@ -266,27 +120,16 @@ const SHRINK_FACTOR = 0.8; // Уменьшение на 20%
             }
         });
 
-        const serializer = new XMLSerializer();
-        let finalSvg = serializer.serializeToString(doc.documentElement);
-        finalSvg = finalSvg.replace(/xmlns:ns\d+="[^"]*"/g, '');
+        let processedSvg = serializeSVG(doc);
+        processedSvg = processedSvg.replace(/xmlns:ns\d+="[^"]*"/g, '');
 
-        showPreview(finalSvg);
+        showPreview(processedSvg);
+        setStatus(`✓ Обработано: ${seatCount} мест, ${contourCount} контуров`);
         
-        setStatus(
-            `✅ Обработано: ${seatCount} мест, ${contourCount} контуров, ` +
-            `финальный радиус: ${finalRadius}px`
-        );
-        
-        const downloadBtn = document.getElementById('ts-download');
-        if (downloadBtn) {
-            downloadBtn.style.display = 'block';
-        }
-        
-        console.log('==================== ОБРАБОТКА ЗАВЕРШЕНА ====================');
+        document.getElementById('ts-download').style.display = 'block';
 
     } catch (e) {
         handleError(e);
-        console.error('❌ Ошибка в processTs:', e);
     }
 }
 
@@ -296,15 +139,11 @@ function downloadTs() {
 
 function clearTs() {
     tsSvgContent = '';
-    const fileInput = document.getElementById('ts-file');
-    if (fileInput) fileInput.value = '';
+    document.getElementById('ts-file').value = '';
     const dropzone = document.getElementById('ts-dropzone');
-    if (dropzone) {
-        dropzone.classList.remove('active');
-        dropzone.querySelector('p').textContent = 'Перетащите SVG-файл сюда';
-    }
-    const fileName = document.getElementById('ts-file-name');
-    if (fileName) fileName.style.display = 'none';
+    dropzone.classList.remove('active');
+    dropzone.querySelector('p').textContent = 'Перетащите SVG-файл сюда';
+    document.getElementById('ts-file-name').style.display = 'none';
     clearResult();
 }
 
