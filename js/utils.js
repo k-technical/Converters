@@ -51,7 +51,7 @@ function serializeSVG(doc) {
     return serializer.serializeToString(doc.documentElement);
 }
 
-// ============ МАСШТАБИРОВАНИЕ СХЕМЫ (рабочая версия) ============
+// ============ МАСШТАБИРОВАНИЕ СХЕМЫ ============
 function scaleSVGDocument(svgContent, scaleFactor) {
     console.log('🔍 Масштабирование с коэффициентом:', scaleFactor);
     
@@ -85,33 +85,16 @@ function scaleSVGDocument(svgContent, scaleFactor) {
     // 3. УДАЛЯЕМ transform
     svg.removeAttribute('transform');
     
-    // 4. Масштабируем элементы
-    const allElements = doc.querySelectorAll('*');
-    const attrsToScale = ['cx', 'cy', 'r', 'x', 'y', 'width', 'height'];
-    
-    allElements.forEach(el => {
-        // Масштабируем атрибуты
-        attrsToScale.forEach(attr => {
-            if (el.hasAttribute(attr)) {
-                const value = parseFloat(el.getAttribute(attr));
-                if (!isNaN(value) && isFinite(value)) {
-                    el.setAttribute(attr, (value * scaleFactor).toString());
-                }
-            }
-        });
-        
-        // ============ МАСШТАБИРУЕМ PATH (исправленная версия) ============
-        if (el.tagName === 'path' || el.tagName === 'PATH') {
-            const d = el.getAttribute('d');
-            if (d) {
-                // Масштабируем ВСЕ числа
-                const scaledD = d.replace(/-?\d+\.?\d*/g, (match) => {
-                    return (parseFloat(match) * scaleFactor).toString();
-                });
-                el.setAttribute('d', scaledD);
-            }
+    // 4. Масштабируем path (координаты)
+    const allPaths = doc.querySelectorAll('path');
+    allPaths.forEach(el => {
+        const d = el.getAttribute('d');
+        if (d) {
+            const scaledD = d.replace(/-?\d+\.?\d*/g, (match) => {
+                return (parseFloat(match) * scaleFactor).toString();
+            });
+            el.setAttribute('d', scaledD);
         }
-        // ================================================================
     });
     
     const serializer = new XMLSerializer();
