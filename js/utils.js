@@ -51,7 +51,7 @@ function serializeSVG(doc) {
     return serializer.serializeToString(doc.documentElement);
 }
 
-// ============ МАСШТАБИРОВАНИЕ СХЕМЫ ============
+// ============ МАСШТАБИРОВАНИЕ СХЕМЫ (рабочая версия) ============
 function scaleSVGDocument(svgContent, scaleFactor) {
     console.log('🔍 Масштабирование с коэффициентом:', scaleFactor);
     
@@ -85,17 +85,9 @@ function scaleSVGDocument(svgContent, scaleFactor) {
     // 3. УДАЛЯЕМ transform
     svg.removeAttribute('transform');
     
-    // 4. Масштабируем ВСЕ элементы
+    // 4. Масштабируем элементы
     const allElements = doc.querySelectorAll('*');
-    const attrsToScale = [
-        'cx', 'cy', 'r', 
-        'x', 'y', 'width', 'height',
-        'rx', 'ry', 
-        'x1', 'y1', 'x2', 'y2',
-        'dx', 'dy',
-        'font-size',
-        'stroke-width'
-    ];
+    const attrsToScale = ['cx', 'cy', 'r', 'x', 'y', 'width', 'height'];
     
     allElements.forEach(el => {
         // Масштабируем атрибуты
@@ -108,25 +100,15 @@ function scaleSVGDocument(svgContent, scaleFactor) {
             }
         });
         
-        // ============ МАСШТАБИРУЕМ PATH (улучшенная версия) ============
+        // Масштабируем path
         if (el.tagName === 'path' || el.tagName === 'PATH') {
             const d = el.getAttribute('d');
             if (d) {
-                // Масштабируем ВСЕ числа в d, включая отрицательные и в научной нотации
-                const scaledD = d.replace(/-?\d+\.?\d*e?-?\d*/gi, (match) => {
+                const scaledD = d.replace(/(\d+\.?\d*)/g, (match) => {
                     return (parseFloat(match) * scaleFactor).toString();
                 });
                 el.setAttribute('d', scaledD);
             }
-        }
-        
-        // Масштабируем transform
-        const transform = el.getAttribute('transform');
-        if (transform) {
-            const scaledTransform = transform.replace(/-?\d+\.?\d*e?-?\d*/gi, (match) => {
-                return (parseFloat(match) * scaleFactor).toString();
-            });
-            el.setAttribute('transform', scaledTransform);
         }
     });
     
