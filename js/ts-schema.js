@@ -1,21 +1,5 @@
 let tsSvgContent = '';
 
-// ============ ФУНКЦИЯ ДЛЯ СКАЧИВАНИЯ ============
-function downloadSVG(svgContent, filename = 'result.svg') {
-    if (!svgContent.startsWith('<?xml')) {
-        svgContent = '<?xml version="1.0" encoding="utf-8"?>\n' + svgContent;
-    }
-    const blob = new Blob([svgContent], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
-
 // ============ ФУНКЦИИ ИЗ app.js ============
 function setStatus(message, isError = false) {
     const status = document.getElementById('status');
@@ -82,51 +66,6 @@ function getSeatRadius(svgContent) {
     }
 }
 
-function scaleSVGDocument(svgContent, scaleFactor) {
-    console.log('🔍 Масштабирование с коэффициентом:', scaleFactor);
-    
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(svgContent, 'image/svg+xml');
-    const svg = doc.documentElement;
-    
-    // 1. Применяем transform к корневому элементу
-    svg.setAttribute('transform', `scale(${scaleFactor})`);
-    
-    // 2. Масштабируем width/height
-    const width = svg.getAttribute('width');
-    const height = svg.getAttribute('height');
-    if (width && height) {
-        svg.setAttribute('width', parseFloat(width) * scaleFactor);
-        svg.setAttribute('height', parseFloat(height) * scaleFactor);
-    }
-    
-    // 3. Масштабируем viewBox
-    const viewBox = svg.getAttribute('viewBox');
-    if (viewBox) {
-        const parts = viewBox.split(/[\s,]+/).map(Number);
-        if (parts.length === 4) {
-            const [x, y, w, h] = parts;
-            svg.setAttribute('viewBox', `${x} ${y} ${w * scaleFactor} ${h * scaleFactor}`);
-        }
-    }
-    
-    // 4. Масштабируем атрибуты всех элементов
-    const allElements = doc.querySelectorAll('[cx], [cy], [r], [x], [y], [width], [height]');
-    allElements.forEach(el => {
-        ['cx', 'cy', 'r', 'x', 'y', 'width', 'height'].forEach(attr => {
-            if (el.hasAttribute(attr)) {
-                const value = parseFloat(el.getAttribute(attr));
-                if (!isNaN(value)) {
-                    el.setAttribute(attr, (value * scaleFactor).toString());
-                }
-            }
-        });
-    });
-    
-    const serializer = new XMLSerializer();
-    return serializer.serializeToString(doc.documentElement);
-}
-
 function shrinkSeatsRadius(svgContent, shrinkFactor) {
     console.log('🔍 Уменьшение радиуса мест с коэффициентом:', shrinkFactor);
     const parser = new DOMParser();
@@ -150,10 +89,6 @@ function shrinkSeatsRadius(svgContent, shrinkFactor) {
     
     const serializer = new XMLSerializer();
     return serializer.serializeToString(doc.documentElement);
-}
-
-function formatSeatId(row, place) {
-    return `Ряд_x5F_${row}_x7C_${place}-${place}`;
 }
 
 // ============ ФУНКЦИИ ИНИЦИАЛИЗАЦИИ ============
@@ -239,8 +174,8 @@ function processTs() {
         console.log('✅ Найден радиус:', originalRadius, 'px');
 
         // 2. Параметры
-        const TARGET_RADIUS = 15; // Целевой радиус ДО уменьшения
-        const SHRINK_FACTOR = 0.8; // Уменьшение на 20%
+        const TARGET_RADIUS = 15;
+        const SHRINK_FACTOR = 0.8;
         
         const scaleFactor = TARGET_RADIUS / originalRadius;
         
@@ -255,7 +190,7 @@ function processTs() {
         let processedSvg = shrinkSeatsRadius(tsSvgContent, SHRINK_FACTOR);
         console.log('✅ Уменьшение мест завершено');
 
-        // 4. Шаг 2: Масштабируем схему
+        // 4. Шаг 2: Масштабируем схему (функция из utils.js)
         console.log('⏳ Шаг 2: Масштабирование схемы...');
         processedSvg = scaleSVGDocument(processedSvg, scaleFactor);
         console.log('✅ Масштабирование завершено');
