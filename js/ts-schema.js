@@ -227,29 +227,27 @@ function processTs() {
         
         console.log('✅ Найден радиус:', originalRadius, 'px');
 
-        // 2. Вычисляем коэффициенты
+        // 2. Параметры
         const TARGET_RADIUS = 15; // Целевой радиус ДО уменьшения
         const SHRINK_FACTOR = 0.8; // Уменьшение на 20%
         
-        // Коэффициент масштабирования схемы
         const scaleFactor = TARGET_RADIUS / originalRadius;
         
         console.log('📊 Параметры:');
         console.log('  Исходный радиус:', originalRadius, 'px');
         console.log('  Целевой радиус (до уменьшения):', TARGET_RADIUS, 'px');
-        console.log('  Уменьшение:', (1 - SHRINK_FACTOR) * 100, '%');
         console.log('  Финальный радиус:', TARGET_RADIUS * SHRINK_FACTOR, 'px');
         console.log('  Коэффициент масштаба:', scaleFactor.toFixed(4), 'x');
 
-        // 3. Шаг 1: Масштабируем схему (через transform)
-        console.log('⏳ Шаг 1: Масштабирование схемы...');
-        let processedSvg = scaleSVGDocument(tsSvgContent, scaleFactor);
-        console.log('✅ Масштабирование завершено');
-
-        // 4. Шаг 2: Уменьшаем каждое место на 20%
-        console.log('⏳ Шаг 2: Уменьшение мест на 20%...');
-        processedSvg = shrinkSeatsRadius(processedSvg, SHRINK_FACTOR);
+        // ============ ШАГ 1: СНАЧАЛА УМЕНЬШАЕМ МЕСТА ============
+        console.log('⏳ Шаг 1: Уменьшение мест на 20%...');
+        let processedSvg = shrinkSeatsRadius(tsSvgContent, SHRINK_FACTOR);
         console.log('✅ Уменьшение мест завершено');
+
+        // ============ ШАГ 2: ПОТОМ МАСШТАБИРУЕМ СХЕМУ ============
+        console.log('⏳ Шаг 2: Масштабирование схемы...');
+        processedSvg = scaleSVGDocument(processedSvg, scaleFactor);
+        console.log('✅ Масштабирование завершено');
 
         // 5. Проверяем финальный радиус
         const finalRadius = getSeatRadius(processedSvg);
