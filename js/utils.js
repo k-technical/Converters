@@ -51,7 +51,7 @@ function serializeSVG(doc) {
     return serializer.serializeToString(doc.documentElement);
 }
 
-// ============ МАСШТАБИРОВАНИЕ ВСЕЙ СХЕМЫ ============
+// ============ МАСШТАБИРОВАНИЕ СХЕМЫ ============
 function scaleSVGDocument(svgContent, scaleFactor) {
     console.log('🔍 Масштабирование с коэффициентом:', scaleFactor);
     
@@ -85,11 +85,12 @@ function scaleSVGDocument(svgContent, scaleFactor) {
     // 3. УДАЛЯЕМ transform
     svg.removeAttribute('transform');
     
-    // 4. Масштабируем ВСЕ элементы с координатами
+    // 4. Масштабируем ВСЕ элементы
     const allElements = doc.querySelectorAll('*');
     const attrsToScale = ['cx', 'cy', 'r', 'x', 'y', 'width', 'height'];
     
     allElements.forEach(el => {
+        // Масштабируем атрибуты
         attrsToScale.forEach(attr => {
             if (el.hasAttribute(attr)) {
                 const value = parseFloat(el.getAttribute(attr));
@@ -99,7 +100,7 @@ function scaleSVGDocument(svgContent, scaleFactor) {
             }
         });
         
-        // Для путей — масштабируем координаты в d
+        // Масштабируем path
         if (el.tagName === 'path' || el.tagName === 'PATH') {
             const d = el.getAttribute('d');
             if (d) {
@@ -108,6 +109,18 @@ function scaleSVGDocument(svgContent, scaleFactor) {
                 });
                 el.setAttribute('d', scaledD);
             }
+        }
+        
+        // Для текста
+        if (el.tagName === 'text' || el.tagName === 'TEXT') {
+            const fontSize = el.getAttribute('font-size');
+            if (fontSize) {
+                el.setAttribute('font-size', parseFloat(fontSize) * scaleFactor);
+            }
+            const x = el.getAttribute('x');
+            const y = el.getAttribute('y');
+            if (x) el.setAttribute('x', parseFloat(x) * scaleFactor);
+            if (y) el.setAttribute('y', parseFloat(y) * scaleFactor);
         }
     });
     
