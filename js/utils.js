@@ -1,9 +1,7 @@
-// Скачивание SVG
 function downloadSVG(svgContent, filename = 'result.svg') {
     if (!svgContent.startsWith('<?xml')) {
         svgContent = '<?xml version="1.0" encoding="utf-8"?>\n' + svgContent;
     }
-    
     const blob = new Blob([svgContent], { type: 'image/svg+xml' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -15,7 +13,6 @@ function downloadSVG(svgContent, filename = 'result.svg') {
     URL.revokeObjectURL(url);
 }
 
-// Парсинг JSON
 function extractJSON(input) {
     try {
         return JSON.parse(input);
@@ -29,12 +26,10 @@ function extractJSON(input) {
     }
 }
 
-// Формат ID места
 function formatSeatId(row, place) {
     return `Ряд_x5F_${row}_x7C_${place}-${place}`;
 }
 
-// Парсинг SVG строки в DOM
 function parseSVG(svgString) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(svgString, 'image/svg+xml');
@@ -45,13 +40,11 @@ function parseSVG(svgString) {
     return doc;
 }
 
-// Сериализация SVG DOM в строку
 function serializeSVG(doc) {
     const serializer = new XMLSerializer();
     return serializer.serializeToString(doc.documentElement);
 }
 
-// ============ МАСШТАБИРОВАНИЕ СХЕМЫ ============
 function scaleSVGDocument(svgContent, scaleFactor) {
     console.log('🔍 Масштабирование с коэффициентом:', scaleFactor);
     
@@ -59,7 +52,6 @@ function scaleSVGDocument(svgContent, scaleFactor) {
     const doc = parser.parseFromString(svgContent, 'image/svg+xml');
     const svg = doc.documentElement;
     
-    // 1. Масштабируем width/height
     const width = svg.getAttribute('width');
     const height = svg.getAttribute('height');
     if (width && height) {
@@ -67,7 +59,6 @@ function scaleSVGDocument(svgContent, scaleFactor) {
         svg.setAttribute('height', parseFloat(height) * scaleFactor);
     }
     
-    // 2. Масштабируем viewBox
     const viewBox = svg.getAttribute('viewBox');
     if (viewBox) {
         const parts = viewBox.split(/[\s,]+/).map(Number);
@@ -82,18 +73,29 @@ function scaleSVGDocument(svgContent, scaleFactor) {
         svg.setAttribute('viewBox', `0 0 ${w * scaleFactor} ${h * scaleFactor}`);
     }
     
-    // 3. УДАЛЯЕМ transform
     svg.removeAttribute('transform');
     
-    // 4. Масштабируем path (координаты)
-    const allPaths = doc.querySelectorAll('path');
-    allPaths.forEach(el => {
-        const d = el.getAttribute('d');
-        if (d) {
-            const scaledD = d.replace(/-?\d+\.?\d*/g, (match) => {
-                return (parseFloat(match) * scaleFactor).toString();
-            });
-            el.setAttribute('d', scaledD);
+    const allElements = doc.querySelectorAll('*');
+    const attrsToScale = ['cx', 'cy', 'r', 'x', 'y', 'width', 'height'];
+    
+    allElements.forEach(el => {
+        attrsToScale.forEach(attr => {
+            if (el.hasAttribute(attr)) {
+                const value = parseFloat(el.getAttribute(attr));
+                if (!isNaN(value) && isFinite(value)) {
+                    el.setAttribute(attr, (value * scaleFactor).toString());
+                }
+            }
+        });
+        
+        if (el.tagName === 'path' || el.tagName === 'PATH') {
+            const d = el.getAttribute('d');
+            if (d) {
+                const scaledD = d.replace(/-?\d+\.?\d*/g, (match) => {
+                    return (parseFloat(match) * scaleFactor).toString();
+                });
+                el.setAttribute('d', scaledD);
+            }
         }
     });
     
