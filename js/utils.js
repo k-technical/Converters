@@ -51,7 +51,7 @@ function serializeSVG(doc) {
     return serializer.serializeToString(doc.documentElement);
 }
 
-// ============ МАСШТАБИРОВАНИЕ СХЕМЫ (только через viewBox) ============
+// ============ МАСШТАБИРОВАНИЕ СХЕМЫ ============
 function scaleSVGDocument(svgContent, scaleFactor) {
     console.log('🔍 Масштабирование с коэффициентом:', scaleFactor);
     
@@ -85,7 +85,23 @@ function scaleSVGDocument(svgContent, scaleFactor) {
     // 3. УДАЛЯЕМ transform (чтобы не было двойного масштабирования)
     svg.removeAttribute('transform');
     
-    // 4. НЕ ТРОГАЕМ КООРДИНАТЫ ЭЛЕМЕНТОВ!
+    // 4. Масштабируем координаты мест
+    const seats = doc.querySelectorAll('circle[tc-seat-no]');
+    seats.forEach(seat => {
+        const r = seat.getAttribute('r');
+        const cx = seat.getAttribute('cx');
+        const cy = seat.getAttribute('cy');
+        
+        if (r) {
+            seat.setAttribute('r', (parseFloat(r) * scaleFactor).toString());
+        }
+        if (cx) {
+            seat.setAttribute('cx', (parseFloat(cx) * scaleFactor).toString());
+        }
+        if (cy) {
+            seat.setAttribute('cy', (parseFloat(cy) * scaleFactor).toString());
+        }
+    });
     
     const serializer = new XMLSerializer();
     return serializer.serializeToString(doc.documentElement);
