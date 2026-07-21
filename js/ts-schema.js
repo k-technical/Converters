@@ -16,9 +16,7 @@ function downloadSVG(svgContent, filename = 'result.svg') {
     URL.revokeObjectURL(url);
 }
 
-// ============ ФУНКЦИИ ИЗ app.js (дублируем для автономности) ============
-let currentSvgResult = null;
-
+// ============ ФУНКЦИИ ИЗ app.js (без дублирования переменной) ============
 function setStatus(message, isError = false) {
     const status = document.getElementById('status');
     if (status) {
@@ -32,7 +30,9 @@ function showPreview(svgContent) {
     if (container) {
         container.innerHTML = svgContent;
     }
-    currentSvgResult = svgContent;
+    if (typeof currentSvgResult !== 'undefined') {
+        currentSvgResult = svgContent;
+    }
 }
 
 function handleError(error, fallbackMessage = 'Произошла ошибка') {
@@ -42,7 +42,7 @@ function handleError(error, fallbackMessage = 'Произошла ошибка')
 }
 
 function downloadCurrentResult(filename) {
-    if (!currentSvgResult) {
+    if (typeof currentSvgResult === 'undefined' || !currentSvgResult) {
         setStatus('Нет результата для скачивания', true);
         return;
     }
@@ -54,7 +54,9 @@ function clearResult() {
     if (container) container.innerHTML = '';
     const status = document.getElementById('status');
     if (status) status.className = 'stats';
-    currentSvgResult = null;
+    if (typeof currentSvgResult !== 'undefined') {
+        currentSvgResult = null;
+    }
     document.querySelectorAll('[id$="-download"]').forEach(btn => {
         btn.style.display = 'none';
     });
@@ -95,8 +97,6 @@ function scaleSVGDocument(svgContent, scaleFactor) {
         if (!isNaN(w) && !isNaN(h)) {
             svg.setAttribute('width', w * scaleFactor);
             svg.setAttribute('height', h * scaleFactor);
-            console.log('  width:', w, '→', w * scaleFactor);
-            console.log('  height:', h, '→', h * scaleFactor);
         }
     }
     
@@ -107,18 +107,10 @@ function scaleSVGDocument(svgContent, scaleFactor) {
         if (parts.length === 4) {
             const [x, y, w, h] = parts;
             svg.setAttribute('viewBox', `${x} ${y} ${w * scaleFactor} ${h * scaleFactor}`);
-            console.log('  viewBox:', viewBox, '→', `${x} ${y} ${w * scaleFactor} ${h * scaleFactor}`);
         }
-    } else {
-        console.warn('⚠️ viewBox не найден, создаем на основе размеров...');
-        // Создаем viewBox из width/height
-        const w = parseFloat(svg.getAttribute('width')) || 800;
-        const h = parseFloat(svg.getAttribute('height')) || 600;
-        svg.setAttribute('viewBox', `0 0 ${w * scaleFactor} ${h * scaleFactor}`);
     }
     
-    // ⚠️ НЕ ТРОГАЕМ КООРДИНАТЫ ЭЛЕМЕНТОВ - они остаются на месте!
-    // Масштабирование происходит через viewBox
+    // ⚠️ НЕ ТРОГАЕМ КООРДИНАТЫ ЭЛЕМЕНТОВ
     
     const serializer = new XMLSerializer();
     return serializer.serializeToString(doc.documentElement);
@@ -130,14 +122,11 @@ function shrinkSeatsRadius(svgContent, shrinkFactor = 0.8) {
     const doc = parser.parseFromString(svgContent, 'image/svg+xml');
     const seats = doc.querySelectorAll('circle[tc-seat-no]');
     
-    console.log('  Найдено мест:', seats.length);
     let count = 0;
-    
     seats.forEach(seat => {
         const r = seat.getAttribute('r');
         if (r) {
-            const oldR = parseFloat(r);
-            const newR = oldR * shrinkFactor;
+            const newR = parseFloat(r) * shrinkFactor;
             seat.setAttribute('r', newR.toString());
             count++;
         }
@@ -264,7 +253,7 @@ function processTs() {
         const finalRadius = getSeatRadius(processedSvg);
         console.log('📏 Финальный радиус:', finalRadius, 'px');
 
-        // 6. Обрабатываем ID и стили (как раньше)
+        // 6. Обрабатываем ID и стили
         const parser = new DOMParser();
         const doc = parser.parseFromString(processedSvg, 'image/svg+xml');
         
