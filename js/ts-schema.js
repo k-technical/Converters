@@ -83,26 +83,21 @@ function getSeatRadius(svgContent) {
 }
 
 function scaleSVGDocument(svgContent, scaleFactor) {
-    console.log('🔍 Масштабирование схемы с коэффициентом:', scaleFactor);
+    console.log('🔍 Масштабирование с коэффициентом:', scaleFactor);
+    
     const parser = new DOMParser();
     const doc = parser.parseFromString(svgContent, 'image/svg+xml');
     const svg = doc.documentElement;
     
-    // 1. Применяем трансформацию к корневому элементу SVG
-    // Это самый надежный способ - все координаты останутся на месте
-    const currentTransform = svg.getAttribute('transform') || '';
+    // 1. Применяем transform
     svg.setAttribute('transform', `scale(${scaleFactor})`);
     
-    // 2. Масштабируем width и height (если они есть)
+    // 2. Масштабируем width/height (если есть)
     const width = svg.getAttribute('width');
     const height = svg.getAttribute('height');
     if (width && height) {
-        const w = parseFloat(width);
-        const h = parseFloat(height);
-        if (!isNaN(w) && !isNaN(h)) {
-            svg.setAttribute('width', w * scaleFactor);
-            svg.setAttribute('height', h * scaleFactor);
-        }
+        svg.setAttribute('width', parseFloat(width) * scaleFactor);
+        svg.setAttribute('height', parseFloat(height) * scaleFactor);
     }
     
     // 3. Масштабируем viewBox (если есть)
@@ -115,8 +110,7 @@ function scaleSVGDocument(svgContent, scaleFactor) {
         }
     }
     
-    // 4. НЕ ТРОГАЕМ КООРДИНАТЫ ЭЛЕМЕНТОВ!
-    // Трансформация на корневом элементе сделает всё сама
+    // 4. НИЧЕГО БОЛЬШЕ НЕ ТРОГАЕМ!
     
     const serializer = new XMLSerializer();
     return serializer.serializeToString(doc.documentElement);
@@ -233,41 +227,35 @@ function processTs() {
         
         console.log('✅ Найден радиус:', originalRadius, 'px');
 
-        if (originalRadius === 0) {
-            setStatus('❌ Радиус места равен 0', true);
-            return;
-        }
-
-        // 2. Параметры
-        const TARGET_FINAL_RADIUS = 6; // Радиус 6px (диаметр 12px)
-        const TARGET_VISUAL_RADIUS = 15; // Промежуточный радиус для масштаба
+        // 2. Вычисляем коэффициенты
+        const TARGET_RADIUS = 15; // Целевой радиус ДО уменьшения
+        const SHRINK_FACTOR = 0.8; // Уменьшение на 20%
         
         // Коэффициент масштабирования схемы
-        const scaleFactor = TARGET_VISUAL_RADIUS / originalRadius;
-        // Коэффициент уменьшения радиуса места
-        const shrinkFactor = TARGET_FINAL_RADIUS / originalRadius;
+        const scaleFactor = TARGET_RADIUS / originalRadius;
         
         console.log('📊 Параметры:');
         console.log('  Исходный радиус:', originalRadius, 'px');
-        console.log('  Коэффициент масштаба (вся схема):', scaleFactor.toFixed(4), 'x');
-        console.log('  Коэффициент уменьшения (места):', shrinkFactor.toFixed(4), 'x');
+        console.log('  Целевой радиус (до уменьшения):', TARGET_RADIUS, 'px');
+        console.log('  Уменьшение:', (1 - SHRINK_FACTOR) * 100, '%');
+        console.log('  Финальный радиус:', TARGET_RADIUS * SHRINK_FACTOR, 'px');
+        console.log('  Коэффициент масштаба:', scaleFactor.toFixed(4), 'x');
 
-        // 3. Шаг 1: Масштабируем схему через transform
-        console.log('⏳ Шаг 1: Масштабирование схемы через transform...');
+        // 3. Шаг 1: Масштабируем схему (через transform)
+        console.log('⏳ Шаг 1: Масштабирование схемы...');
         let processedSvg = scaleSVGDocument(tsSvgContent, scaleFactor);
         console.log('✅ Масштабирование завершено');
 
-        // 4. Шаг 2: Уменьшаем радиус каждого места
-        console.log('⏳ Шаг 2: Уменьшение радиуса мест...');
-        processedSvg = shrinkSeatsRadius(processedSvg, shrinkFactor);
+        // 4. Шаг 2: Уменьшаем каждое место на 20%
+        console.log('⏳ Шаг 2: Уменьшение мест на 20%...');
+        processedSvg = shrinkSeatsRadius(processedSvg, SHRINK_FACTOR);
         console.log('✅ Уменьшение мест завершено');
 
         // 5. Проверяем финальный радиус
         const finalRadius = getSeatRadius(processedSvg);
         console.log('📏 Финальный числовой радиус:', finalRadius, 'px');
-        console.log('📏 Визуальный радиус (с учетом масштаба):', (finalRadius * scaleFactor).toFixed(1), 'px');
 
-        // 6. Обрабатываем ID и стили (эта часть не меняется)
+        // 6. Дальнейшая обработка (ID, стили и т.д.)
         const parser = new DOMParser();
         const doc = parser.parseFromString(processedSvg, 'image/svg+xml');
         
@@ -275,8 +263,6 @@ function processTs() {
         let contourCount = 0;
 
         const allRowGroups = doc.querySelectorAll('[tc-row-no]');
-        console.log('🔍 Найдено групп с tc-row-no:', allRowGroups.length);
-        
         const sectors = new Map();
         
         allRowGroups.forEach(row => {
@@ -289,8 +275,6 @@ function processTs() {
                 sectors.get(parentId).push(row);
             }
         });
-        
-        console.log('📂 Найдено секторов:', sectors.size);
 
         sectors.forEach((rows) => {
             const parent = rows[0].parentNode;
@@ -343,7 +327,7 @@ function processTs() {
         
         setStatus(
             `✅ Обработано: ${seatCount} мест, ${contourCount} контуров, ` +
-            `финальный радиус: ${finalRadius}px, масштаб: ${scaleFactor.toFixed(2)}x`
+            `финальный радиус: ${finalRadius}px`
         );
         
         const downloadBtn = document.getElementById('ts-download');
