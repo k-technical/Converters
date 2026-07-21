@@ -4,47 +4,39 @@
  * Масштабирование всей SVG схемы
  */
 function scaleSVGDocument(svgContent, scaleFactor) {
-    console.log('🔍 scaleSVGDocument вызван с коэффициентом:', scaleFactor);
+    console.log('🔍 Масштабирование с коэффициентом:', scaleFactor);
     
-    const doc = parseSVG(svgContent);
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgContent, 'image/svg+xml');
     const svg = doc.documentElement;
     
-    console.log('📄 Исходный SVG элемент:', svg.tagName);
-    console.log('📐 Исходный viewBox:', svg.getAttribute('viewBox'));
+    // 1. Применяем transform к корневому элементу (ЭТО ГЛАВНОЕ)
+    svg.setAttribute('transform', `scale(${scaleFactor})`);
     
-    // ПРЯМОЕ МАСШТАБИРОВАНИЕ ЧЕРЕЗ АТРИБУТЫ width/height
+    // 2. Масштабируем width/height
     const width = svg.getAttribute('width');
     const height = svg.getAttribute('height');
-    
     if (width && height) {
-        const newWidth = parseFloat(width) * scaleFactor;
-        const newHeight = parseFloat(height) * scaleFactor;
-        svg.setAttribute('width', newWidth);
-        svg.setAttribute('height', newHeight);
-        console.log('📏 Изменены width/height:', width, '→', newWidth, 'x', height, '→', newHeight);
+        svg.setAttribute('width', parseFloat(width) * scaleFactor);
+        svg.setAttribute('height', parseFloat(height) * scaleFactor);
     }
     
-    // Масштабируем viewBox
+    // 3. Масштабируем viewBox
     const viewBox = svg.getAttribute('viewBox');
     if (viewBox) {
         const parts = viewBox.split(/[\s,]+/).map(Number);
         if (parts.length === 4) {
-            const [x, y, width, height] = parts;
-            const newWidth = width * scaleFactor;
-            const newHeight = height * scaleFactor;
-            svg.setAttribute('viewBox', `${x} ${y} ${newWidth} ${newHeight}`);
-            console.log('📏 Изменен viewBox:', viewBox, '→', `${x} ${y} ${newWidth} ${newHeight}`);
-        }
-    } else {
-        // Если viewBox нет, создаем его
-        console.warn('⚠️ viewBox не найден, создаем...');
-        // Получаем bounding box всех элементов
-        const bbox = getSVGBoundingBox(doc);
-        if (bbox) {
-            svg.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
-            console.log('📏 Создан viewBox:', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`);
+            const [x, y, w, h] = parts;
+            svg.setAttribute('viewBox', `${x} ${y} ${w * scaleFactor} ${h * scaleFactor}`);
         }
     }
+    
+    // ⚠️ НЕ ТРОГАЕМ АТРИБУТЫ ЭЛЕМЕНТОВ
+    // transform на корневом элементе масштабирует всё визуально
+    
+    const serializer = new XMLSerializer();
+    return serializer.serializeToString(doc.documentElement);
+}
     
     // ДОПОЛНИТЕЛЬНО: масштабируем все элементы с координатами
     scaleAllCoordinates(doc, scaleFactor);
