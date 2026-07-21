@@ -87,7 +87,15 @@ function scaleSVGDocument(svgContent, scaleFactor) {
     
     // 4. Масштабируем ВСЕ элементы
     const allElements = doc.querySelectorAll('*');
-    const attrsToScale = ['cx', 'cy', 'r', 'x', 'y', 'width', 'height'];
+    const attrsToScale = [
+        'cx', 'cy', 'r', 
+        'x', 'y', 'width', 'height',
+        'rx', 'ry', 
+        'x1', 'y1', 'x2', 'y2',
+        'dx', 'dy',
+        'font-size',
+        'stroke-width'
+    ];
     
     allElements.forEach(el => {
         // Масштабируем атрибуты
@@ -100,27 +108,25 @@ function scaleSVGDocument(svgContent, scaleFactor) {
             }
         });
         
-        // Масштабируем path
+        // ============ МАСШТАБИРУЕМ PATH (улучшенная версия) ============
         if (el.tagName === 'path' || el.tagName === 'PATH') {
             const d = el.getAttribute('d');
             if (d) {
-                const scaledD = d.replace(/(\d+\.?\d*)/g, (match) => {
+                // Масштабируем ВСЕ числа в d, включая отрицательные и в научной нотации
+                const scaledD = d.replace(/-?\d+\.?\d*e?-?\d*/gi, (match) => {
                     return (parseFloat(match) * scaleFactor).toString();
                 });
                 el.setAttribute('d', scaledD);
             }
         }
         
-        // Для текста
-        if (el.tagName === 'text' || el.tagName === 'TEXT') {
-            const fontSize = el.getAttribute('font-size');
-            if (fontSize) {
-                el.setAttribute('font-size', parseFloat(fontSize) * scaleFactor);
-            }
-            const x = el.getAttribute('x');
-            const y = el.getAttribute('y');
-            if (x) el.setAttribute('x', parseFloat(x) * scaleFactor);
-            if (y) el.setAttribute('y', parseFloat(y) * scaleFactor);
+        // Масштабируем transform
+        const transform = el.getAttribute('transform');
+        if (transform) {
+            const scaledTransform = transform.replace(/-?\d+\.?\d*e?-?\d*/gi, (match) => {
+                return (parseFloat(match) * scaleFactor).toString();
+            });
+            el.setAttribute('transform', scaledTransform);
         }
     });
     
