@@ -1,5 +1,82 @@
 let tsSvgContent = '';
 
+// ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (добавлены сюда) ============
+
+function getSeatRadius(svgContent) {
+    try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(svgContent, 'image/svg+xml');
+        const firstSeat = doc.querySelector('circle[tc-seat-no]');
+        if (firstSeat) {
+            const r = firstSeat.getAttribute('r');
+            if (r) {
+                return parseFloat(r);
+            }
+        }
+        return null;
+    } catch(e) {
+        console.error('Ошибка в getSeatRadius:', e);
+        return null;
+    }
+}
+
+function scaleSVGDocument(svgContent, scaleFactor) {
+    console.log('🔍 Масштабирование с коэффициентом:', scaleFactor);
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgContent, 'image/svg+xml');
+    const svg = doc.documentElement;
+    
+    const width = svg.getAttribute('width');
+    const height = svg.getAttribute('height');
+    if (width && height) {
+        svg.setAttribute('width', parseFloat(width) * scaleFactor);
+        svg.setAttribute('height', parseFloat(height) * scaleFactor);
+    }
+    
+    const viewBox = svg.getAttribute('viewBox');
+    if (viewBox) {
+        const parts = viewBox.split(/[\s,]+/).map(Number);
+        if (parts.length === 4) {
+            const [x, y, w, h] = parts;
+            svg.setAttribute('viewBox', `${x} ${y} ${w * scaleFactor} ${h * scaleFactor}`);
+        }
+    }
+    
+    const elements = doc.querySelectorAll('[cx], [cy], [r], [x], [y], [width], [height]');
+    elements.forEach(el => {
+        ['cx', 'cy', 'r', 'x', 'y', 'width', 'height'].forEach(attr => {
+            if (el.hasAttribute(attr)) {
+                const value = parseFloat(el.getAttribute(attr));
+                if (!isNaN(value)) {
+                    el.setAttribute(attr, (value * scaleFactor).toString());
+                }
+            }
+        });
+    });
+    
+    const serializer = new XMLSerializer();
+    return serializer.serializeToString(doc.documentElement);
+}
+
+function shrinkSeats(svgContent, shrinkFactor = 0.8) {
+    console.log('🔍 Уменьшение мест с коэффициентом:', shrinkFactor);
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgContent, 'image/svg+xml');
+    const seats = doc.querySelectorAll('circle[tc-seat-no]');
+    
+    seats.forEach(seat => {
+        const r = seat.getAttribute('r');
+        if (r) {
+            seat.setAttribute('r', (parseFloat(r) * shrinkFactor).toString());
+        }
+    });
+    
+    const serializer = new XMLSerializer();
+    return serializer.serializeToString(doc.documentElement);
+}
+
+// ============ ФУНКЦИИ ИНИЦИАЛИЗАЦИИ ============
+
 function initTs() {
     const dropzone = document.getElementById('ts-dropzone');
     const fileInput = document.getElementById('ts-file');
@@ -52,6 +129,7 @@ function readTsFile(file) {
 }
 
 // ============ ОСНОВНАЯ ФУНКЦИЯ ОБРАБОТКИ ============
+
 function processTs() {
     try {
         if (!tsSvgContent) {
@@ -71,7 +149,7 @@ function processTs() {
             return;
         }
         
-        console.log(`✅ Найден радиус: ${originalRadius}px`);
+        console.log('✅ Найден радиус:', originalRadius, 'px');
 
         // 2. Проверяем, что радиус не нулевой
         if (originalRadius === 0) {
@@ -85,48 +163,35 @@ function processTs() {
         const scaleFactor = TARGET_RADIUS / originalRadius;
         
         console.log('📊 Параметры масштабирования:');
-        console.log(`  Исходный радиус: ${originalRadius}px`);
-        console.log(`  Целевой радиус: ${TARGET_RADIUS}px`);
-        console.log(`  Коэффициент: ${scaleFactor.toFixed(4)}x`);
+        console.log('  Исходный радиус:', originalRadius, 'px');
+        console.log('  Целевой радиус:', TARGET_RADIUS, 'px');
+        console.log('  Коэффициент:', scaleFactor.toFixed(4), 'x');
 
         // 4. Этап 1: Масштабируем всю схему
         console.log('⏳ Шаг 1: Масштабирование схемы...');
         let processedSvg = scaleSVGDocument(tsSvgContent, scaleFactor);
-        console.log(`✅ Длина после масштабирования: ${processedSvg.length} символов`);
-        
-        // Сохраняем промежуточный результат для отладки
-        console.log('📝 Промежуточный результат (первые 500 символов):');
-        console.log(processedSvg.substring(0, 500));
+        console.log('✅ Масштабирование завершено');
 
         // 5. Этап 2: Уменьшаем каждое место на 20%
         const SHRINK_FACTOR = 0.8;
-        console.log(`⏳ Шаг 2: Уменьшение мест на ${(1 - SHRINK_FACTOR) * 100}%...`);
+        console.log('⏳ Шаг 2: Уменьшение мест на', (1 - SHRINK_FACTOR) * 100, '%...');
         processedSvg = shrinkSeats(processedSvg, SHRINK_FACTOR);
-        console.log(`✅ Длина после уменьшения мест: ${processedSvg.length} символов`);
+        console.log('✅ Уменьшение мест завершено');
 
-        // 6. Проверяем, что радиус изменился
-        const checkRadius = getSeatRadius(processedSvg);
-        console.log(`📏 Проверка: радиус после всех трансформаций = ${checkRadius}px`);
-        
-        if (checkRadius) {
-            const expectedRadius = TARGET_RADIUS * SHRINK_FACTOR;
-            console.log(`🎯 Ожидаемый радиус: ${expectedRadius}px`);
-            if (Math.abs(checkRadius - expectedRadius) > 0.5) {
-                console.warn(`⚠️ Радиус отличается от ожидаемого!`);
-            } else {
-                console.log(`✅ Радиус соответствует ожидаемому!`);
-            }
-        }
+        // 6. Проверяем финальный радиус
+        const finalRadius = getSeatRadius(processedSvg);
+        console.log('📏 Финальный радиус:', finalRadius, 'px');
 
         // 7. Парсим обработанный SVG для дальнейшей обработки
-        const doc = parseSVG(processedSvg);
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(processedSvg, 'image/svg+xml');
         
         let seatCount = 0;
         let contourCount = 0;
 
         // 8. Группировка по секторам
         const allRowGroups = doc.querySelectorAll('[tc-row-no]');
-        console.log(`🔍 Найдено групп с tc-row-no: ${allRowGroups.length}`);
+        console.log('🔍 Найдено групп с tc-row-no:', allRowGroups.length);
         
         const sectors = new Map();
         
@@ -141,11 +206,10 @@ function processTs() {
             }
         });
         
-        console.log(`📂 Найдено секторов: ${sectors.size}`);
+        console.log('📂 Найдено секторов:', sectors.size);
 
         // 9. Обработка каждого сектора
         sectors.forEach((rows, sectorName) => {
-            console.log(`  Обработка сектора: ${sectorName}, рядов: ${rows.length}`);
             const parent = rows[0].parentNode;
             const seatsWithRows = [];
             
@@ -192,20 +256,16 @@ function processTs() {
         });
 
         // 11. Сериализация и очистка
-        let finalSvg = serializeSVG(doc);
+        const serializer = new XMLSerializer();
+        let finalSvg = serializer.serializeToString(doc.documentElement);
         finalSvg = finalSvg.replace(/xmlns:ns\d+="[^"]*"/g, '');
 
-        // 12. Финальная проверка
-        const finalRadius = getSeatRadius(finalSvg);
-        console.log('✅ Финальный радиус места:', finalRadius, 'px');
-
-        // 13. Показываем результат
+        // 12. Показываем результат
         showPreview(finalSvg);
         
         setStatus(
             `✅ Обработано: ${seatCount} мест, ${contourCount} контуров, ` +
-            `масштаб: ${scaleFactor.toFixed(2)}x, места уменьшены на 20%, ` +
-            `радиус: ${finalRadius}px`
+            `масштаб: ${scaleFactor.toFixed(2)}x, финальный радиус: ${finalRadius}px`
         );
         
         document.getElementById('ts-download').style.display = 'block';
