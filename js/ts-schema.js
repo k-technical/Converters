@@ -75,72 +75,11 @@ function shrinkSeats(svgContent, shrinkFactor = 0.8) {
     return serializer.serializeToString(doc.documentElement);
 }
 
-// ============ ДОБАВИТЬ ЭТУ ФУНКЦИЮ ============
 function formatSeatId(row, place) {
     return `Ряд_x5F_${row}_x7C_${place}-${place}`;
 }
 
-// ============ ФУНКЦИИ app.js (добавлены сюда на всякий случай) ============
-
-function setStatus(message, isError = false) {
-    const status = document.getElementById('status');
-    if (status) {
-        status.textContent = message;
-        status.className = isError ? 'stats error active' : 'stats active';
-    }
-}
-
-function showPreview(svgContent) {
-    const container = document.getElementById('previewContainer');
-    if (container) {
-        container.innerHTML = svgContent;
-    }
-    currentSvgResult = svgContent;
-}
-
-function handleError(error, fallbackMessage = 'Произошла ошибка') {
-    const message = error.message || fallbackMessage;
-    setStatus(message, true);
-    console.error(error);
-}
-
-function downloadCurrentResult(filename) {
-    if (!currentSvgResult) {
-        setStatus('Нет результата для скачивания', true);
-        return;
-    }
-    downloadSVG(currentSvgResult, filename);
-}
-
-function clearResult() {
-    const container = document.getElementById('previewContainer');
-    if (container) container.innerHTML = '';
-    const status = document.getElementById('status');
-    if (status) status.className = 'stats';
-    currentSvgResult = null;
-    document.querySelectorAll('[id$="-download"]').forEach(btn => {
-        btn.style.display = 'none';
-    });
-}
-
-function downloadSVG(svgContent, filename = 'result.svg') {
-    if (!svgContent.startsWith('<?xml')) {
-        svgContent = '<?xml version="1.0" encoding="utf-8"?>\n' + svgContent;
-    }
-    const blob = new Blob([svgContent], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
-
-// ============ ОСТАЛЬНОЙ КОД ts-schema.js ============
-
-let currentSvgResult = null;
+// ============ ФУНКЦИИ ИНИЦИАЛИЗАЦИИ ============
 
 function initTs() {
     const dropzone = document.getElementById('ts-dropzone');
@@ -192,6 +131,8 @@ function readTsFile(file) {
     };
     reader.readAsText(file);
 }
+
+// ============ ОСНОВНАЯ ФУНКЦИЯ ОБРАБОТКИ ============
 
 function processTs() {
     try {
