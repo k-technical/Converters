@@ -51,7 +51,7 @@ function serializeSVG(doc) {
     return serializer.serializeToString(doc.documentElement);
 }
 
-// ============ МАСШТАБИРОВАНИЕ СХЕМЫ ============
+// ============ МАСШТАБИРОВАНИЕ СХЕМЫ (только через viewBox) ============
 function scaleSVGDocument(svgContent, scaleFactor) {
     console.log('🔍 Масштабирование с коэффициентом:', scaleFactor);
     
@@ -59,11 +59,7 @@ function scaleSVGDocument(svgContent, scaleFactor) {
     const doc = parser.parseFromString(svgContent, 'image/svg+xml');
     const svg = doc.documentElement;
     
-    // 1. Применяем transform к корневому элементу
-    const currentTransform = svg.getAttribute('transform') || '';
-    svg.setAttribute('transform', `${currentTransform} scale(${scaleFactor})`.trim());
-    
-    // 2. Масштабируем width/height
+    // 1. Масштабируем width/height
     const width = svg.getAttribute('width');
     const height = svg.getAttribute('height');
     if (width && height) {
@@ -71,33 +67,25 @@ function scaleSVGDocument(svgContent, scaleFactor) {
         svg.setAttribute('height', parseFloat(height) * scaleFactor);
     }
     
-    // 3. Масштабируем viewBox
+    // 2. Масштабируем viewBox
     const viewBox = svg.getAttribute('viewBox');
     if (viewBox) {
         const parts = viewBox.split(/[\s,]+/).map(Number);
         if (parts.length === 4) {
             const [x, y, w, h] = parts;
             svg.setAttribute('viewBox', `${x} ${y} ${w * scaleFactor} ${h * scaleFactor}`);
+            console.log('  Новый viewBox:', `${x} ${y} ${w * scaleFactor} ${h * scaleFactor}`);
         }
+    } else {
+        const w = parseFloat(svg.getAttribute('width')) || 800;
+        const h = parseFloat(svg.getAttribute('height')) || 600;
+        svg.setAttribute('viewBox', `0 0 ${w * scaleFactor} ${h * scaleFactor}`);
     }
     
-    // 4. Масштабируем атрибуты мест (r, cx, cy)
-    const seats = doc.querySelectorAll('circle[tc-seat-no]');
-    seats.forEach(seat => {
-        const r = seat.getAttribute('r');
-        const cx = seat.getAttribute('cx');
-        const cy = seat.getAttribute('cy');
-        
-        if (r) {
-            seat.setAttribute('r', (parseFloat(r) * scaleFactor).toString());
-        }
-        if (cx) {
-            seat.setAttribute('cx', (parseFloat(cx) * scaleFactor).toString());
-        }
-        if (cy) {
-            seat.setAttribute('cy', (parseFloat(cy) * scaleFactor).toString());
-        }
-    });
+    // 3. УДАЛЯЕМ transform (чтобы не было двойного масштабирования)
+    svg.removeAttribute('transform');
+    
+    // 4. НЕ ТРОГАЕМ КООРДИНАТЫ ЭЛЕМЕНТОВ!
     
     const serializer = new XMLSerializer();
     return serializer.serializeToString(doc.documentElement);
