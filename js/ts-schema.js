@@ -229,13 +229,17 @@ function processTs() {
             return;
         }
 
-        // 2. Вычисляем коэффициент
-        const TARGET_RADIUS = 15;
-        const scaleFactor = TARGET_RADIUS / originalRadius;
+        // 2. Параметры
+        const SHRINK_FACTOR = 0.8; // Уменьшение на 20%
+        const FINAL_RADIUS = 12;   // Желаемый финальный визуальный радиус
+        
+        // Коэффициент масштаба с учетом уменьшения
+        const scaleFactor = FINAL_RADIUS / (originalRadius * SHRINK_FACTOR);
         
         console.log('📊 Параметры:');
         console.log('  Исходный радиус:', originalRadius, 'px');
-        console.log('  Целевой радиус:', TARGET_RADIUS, 'px');
+        console.log('  Уменьшение:', (1 - SHRINK_FACTOR) * 100, '%');
+        console.log('  Желаемый финальный радиус:', FINAL_RADIUS, 'px');
         console.log('  Коэффициент масштаба:', scaleFactor.toFixed(4), 'x');
 
         // 3. Масштабируем схему
@@ -243,17 +247,15 @@ function processTs() {
         let processedSvg = scaleSVGDocument(tsSvgContent, scaleFactor);
         console.log('✅ Масштабирование завершено');
 
-        // ============ ДОБАВЬТЕ ЭТОТ БЛОК ============
         // 4. Уменьшаем места на 20%
-        const SHRINK_FACTOR = 0.8;
         console.log('⏳ Уменьшение мест на 20%...');
         processedSvg = shrinkSeatsRadius(processedSvg, SHRINK_FACTOR);
         console.log('✅ Уменьшение мест завершено');
-        // ============ КОНЕЦ ДОБАВЛЕННОГО БЛОКА ============
 
         // 5. Проверяем финальный радиус
         const finalRadius = getSeatRadius(processedSvg);
-        console.log('📏 Финальный радиус:', finalRadius, 'px');
+        console.log('📏 Финальный числовой радиус:', finalRadius, 'px');
+        console.log('📏 Финальный визуальный радиус:', (finalRadius * scaleFactor).toFixed(1), 'px');
 
         // 6. Обрабатываем ID и стили
         const parser = new DOMParser();
@@ -329,9 +331,10 @@ function processTs() {
 
         showPreview(finalSvg);
         
+        const visualRadius = (finalRadius * scaleFactor).toFixed(1);
         setStatus(
             `✅ Обработано: ${seatCount} мест, ${contourCount} контуров, ` +
-            `масштаб: ${scaleFactor.toFixed(2)}x, финальный радиус: ${finalRadius}px`
+            `масштаб: ${scaleFactor.toFixed(2)}x, визуальный радиус: ${visualRadius}px`
         );
         
         const downloadBtn = document.getElementById('ts-download');
