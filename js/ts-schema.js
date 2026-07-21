@@ -51,19 +51,51 @@ function readTsFile(file) {
     reader.readAsText(file);
 }
 
+// ============ ОСНОВНАЯ ФУНКЦИЯ ОБРАБОТКИ ============
 function processTs() {
     try {
         if (!tsSvgContent) {
             throw new Error('Загрузите SVG файл');
         }
 
-        const doc = parseSVG(tsSvgContent);
+        // 1. Определяем радиус места
+        const originalRadius = getSeatRadius(tsSvgContent);
+        if (!originalRadius) {
+            setStatus('Не удалось определить радиус места (атрибут r)', true);
+            return;
+        }
+
+        // 2. Проверяем, что радиус не нулевой
+        if (originalRadius === 0) {
+            setStatus('Радиус места равен 0. Проверьте SVG файл', true);
+            return;
+        }
+
+        // 3. Вычисляем коэффициент масштабирования
+        const TARGET_RADIUS = 15;
+        const scaleFactor = TARGET_RADIUS / originalRadius;
+        
+        console.log('📏 Исходный радиус:', originalRadius, 'px');
+        console.log('🎯 Целевой радиус:', TARGET_RADIUS, 'px');
+        console.log('📐 Коэффициент масштаба:', scaleFactor.toFixed(4), 'x');
+
+        // 4. Этап 1: Масштабируем всю схему
+        console.log('⏳ Масштабирование схемы...');
+        let processedSvg = scaleSVGDocument(tsSvgContent, scaleFactor);
+
+        // 5. Этап 2: Уменьшаем каждое место на 20%
+        const SHRINK_FACTOR = 0.8; // 100% → 80%
+        console.log('⏳ Уменьшение мест на 20%...');
+        processedSvg = shrinkSeats(processedSvg, SHRINK_FACTOR);
+
+        // 6. Парсим обработанный SVG
+        const doc = parseSVG(processedSvg);
         
         let seatCount = 0;
         let contourCount = 0;
 
+        // 7. Группировка по секторам
         const allRowGroups = doc.querySelectorAll('[tc-row-no]');
-
         const sectors = new Map();
         
         allRowGroups.forEach(row => {
@@ -77,6 +109,7 @@ function processTs() {
             }
         });
 
+        // 8. Обработка каждого сектора
         sectors.forEach((rows, sectorName) => {
             const parent = rows[0].parentNode;
             const seatsWithRows = [];
@@ -95,19 +128,22 @@ function processTs() {
                 });
             });
 
+            // Удаляем ряды
             rows.forEach(row => row.remove());
 
+            // Добавляем места напрямую в сектор
             seatsWithRows.forEach(({element, rowNo, seatNo}) => {
-    const newId = formatSeatId(rowNo, seatNo);
-    element.setAttribute('id', newId);
-    element.setAttribute('fill', 'none');
-    element.setAttribute('stroke', '#AEAEAE');
-    element.setAttribute('stroke-width', '1');
-    seatCount++;
-    parent.appendChild(element);
-});
+                const newId = formatSeatId(rowNo, seatNo);
+                element.setAttribute('id', newId);
+                element.setAttribute('fill', 'none');
+                element.setAttribute('stroke', '#AEAEAE');
+                element.setAttribute('stroke-width', '1');
+                seatCount++;
+                parent.appendChild(element);
+            });
         });
 
+        // 9. Очистка ID контуров
         const allElements = doc.querySelectorAll('[id]');
         allElements.forEach(elem => {
             const oldId = elem.getAttribute('id');
@@ -120,16 +156,27 @@ function processTs() {
             }
         });
 
-        let processedSvg = serializeSVG(doc);
-        processedSvg = processedSvg.replace(/xmlns:ns\d+="[^"]*"/g, '');
+        // 10. Сериализация и очистка
+        let finalSvg = serializeSVG(doc);
+        finalSvg = finalSvg.replace(/xmlns:ns\d+="[^"]*"/g, '');
 
-        showPreview(processedSvg);
-        setStatus(`✓ Обработано: ${seatCount} мест, ${contourCount} контуров`);
+        // 11. Показываем результат
+        showPreview(finalSvg);
+        
+        // Проверяем финальный радиус (для отладки)
+        const finalRadius = getSeatRadius(finalSvg);
+        console.log('✅ Финальный радиус места:', finalRadius, 'px');
+        
+        setStatus(
+            `✅ Обработано: ${seatCount} мест, ${contourCount} контуров, ` +
+            `масштаб: ${scaleFactor.toFixed(2)}x, места уменьшены на 20%`
+        );
         
         document.getElementById('ts-download').style.display = 'block';
 
     } catch (e) {
         handleError(e);
+        console.error('Ошибка в processTs:', e);
     }
 }
 
