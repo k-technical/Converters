@@ -238,22 +238,16 @@ function processTs() {
         console.log('  Целевой радиус:', TARGET_RADIUS, 'px');
         console.log('  Коэффициент масштаба:', scaleFactor.toFixed(4), 'x');
 
-        // 3. Шаг 1: Масштабируем схему через viewBox
-        console.log('⏳ Шаг 1: Масштабирование схемы...');
+        // 3. ТОЛЬКО масштабируем схему (БЕЗ уменьшения мест)
+        console.log('⏳ Масштабирование схемы...');
         let processedSvg = scaleSVGDocument(tsSvgContent, scaleFactor);
         console.log('✅ Масштабирование завершено');
 
-        // 4. Шаг 2: Уменьшаем радиус каждого места на 20%
-        const SHRINK_FACTOR = 0.8;
-        console.log('⏳ Шаг 2: Уменьшение радиуса мест на 20%...');
-        processedSvg = shrinkSeatsRadius(processedSvg, SHRINK_FACTOR);
-        console.log('✅ Уменьшение мест завершено');
-
-        // 5. Проверяем финальный радиус
+        // 4. Проверяем финальный радиус
         const finalRadius = getSeatRadius(processedSvg);
         console.log('📏 Финальный радиус:', finalRadius, 'px');
 
-        // 6. Обрабатываем ID и стили
+        // 5. Обрабатываем ID и стили
         const parser = new DOMParser();
         const doc = parser.parseFromString(processedSvg, 'image/svg+xml');
         
@@ -325,7 +319,6 @@ function processTs() {
         let finalSvg = serializer.serializeToString(doc.documentElement);
         finalSvg = finalSvg.replace(/xmlns:ns\d+="[^"]*"/g, '');
 
-        // 7. Показываем результат
         showPreview(finalSvg);
         
         setStatus(
