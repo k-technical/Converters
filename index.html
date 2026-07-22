@@ -3,21 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Инструменты для схем</title>
+    <title>Converters</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Инструменты для схем</h1>
-            <p>Обработка SVG-схем</p>
+            <h1>Converters</h1>
+            <p>JSON-SVG</p>
         </div>
 
         <!-- Табы -->
         <div class="tabs">
             <button class="tab active" data-tab="ya">Ya.Schema</button>
-            <button class="tab" data-tab="ts">TS.Schema</button>
+            <button class="tab" data-tab="tcloud">T-cloud</button>
             <button class="tab" data-tab="q">Q.Schema</button>
+            <button class="tab" data-tab="tland">T-Land</button>
+            <button class="tab" data-tab="redk">Red-K</button>
+            <button class="tab" data-tab="rado">Rad-o</button>
+            <button class="tab" data-tab="afisha">Afisha</button>
         </div>
 
         <!-- Основной контент -->
@@ -25,36 +29,36 @@
             <!-- Левая панель -->
             <div class="left-panel">
                 
-              <!-- Панель Ya.Schema -->
-<div class="tab-panel" id="panel-ya">
-    <div class="input-group">
-        <label>SVG-подложка (JSON с полем result):</label>
-        <textarea id="ya-svg" placeholder='{"result":"&lt;svg&gt;..."}'></textarea>
-    </div>
-    <div class="input-group">
-        <label>Данные с местами (JSON с levels):</label>
-        <textarea id="ya-json" placeholder='{"stage":{},"levels":[]}'></textarea>
-    </div>
-    <div class="option">
-        <input type="checkbox" id="ya-rotate" onchange="processYa()">
-        <label for="ya-rotate">Развернуть на 180°</label>
-    </div>
-    <button class="btn primary" onclick="processYa()">Объединить</button>
-    <button class="btn" id="ya-download" style="display:none;" onclick="downloadYa()">Скачать SVG</button>
-    <button class="btn" onclick="clearYa()">Очистить</button>
-</div>
+                <!-- Панель Ya.Schema -->
+                <div class="tab-panel" id="panel-ya">
+                    <div class="input-group">
+                        <label>SVG-подложка (JSON с полем result):</label>
+                        <textarea id="ya-svg" placeholder='{"result":"&lt;svg&gt;..."}'></textarea>
+                    </div>
+                    <div class="input-group">
+                        <label>Данные с местами (JSON с levels):</label>
+                        <textarea id="ya-json" placeholder='{"stage":{},"levels":[]}'></textarea>
+                    </div>
+                    <div class="option">
+                        <input type="checkbox" id="ya-rotate" onchange="processYa()">
+                        <label for="ya-rotate">Развернуть на 180°</label>
+                    </div>
+                    <button class="btn primary" onclick="processYa()">Конвертировать</button>
+                    <button class="btn" id="ya-download" style="display:none;" onclick="downloadYa()">Скачать SVG</button>
+                    <button class="btn" onclick="clearYa()">Очистить</button>
+                </div>
 
-                <!-- Панель TS.Schema -->
-                <div class="tab-panel" id="panel-ts" style="display:none;">
-                    <div class="file-upload" id="ts-dropzone">
+                <!-- Панель T-cloud -->
+                <div class="tab-panel" id="panel-tcloud" style="display:none;">
+                    <div class="file-upload" id="tcloud-dropzone">
                         <p>Перетащите SVG-файл сюда</p>
                         <small>или нажмите для выбора</small>
                     </div>
-                    <input type="file" id="ts-file" accept=".svg" style="display:none;">
-                    <div id="ts-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
-                    <button class="btn primary" onclick="processTs()">Обработать</button>
-                    <button class="btn" id="ts-download" style="display:none;" onclick="downloadTs()">Скачать SVG</button>
-                    <button class="btn" onclick="clearTs()">Очистить</button>
+                    <input type="file" id="tcloud-file" accept=".svg" style="display:none;">
+                    <div id="tcloud-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
+                    <button class="btn primary" onclick="processTcloud()">Конвертировать</button>
+                    <button class="btn" id="tcloud-download" style="display:none;" onclick="downloadTcloud()">Скачать SVG</button>
+                    <button class="btn" onclick="clearTcloud()">Очистить</button>
                 </div>
 
                 <!-- Панель Q.Schema -->
@@ -68,9 +72,72 @@
                         <label>Код с координатами (window.schemeConfig):</label>
                         <textarea id="q-code" placeholder="Вставьте код из файла со схемой..."></textarea>
                     </div>
-                    <button class="btn primary" onclick="processQ()">Создать схему</button>
+                    <button class="btn primary" onclick="processQ()">Конвертировать</button>
                     <button class="btn" id="q-download" style="display:none;" onclick="downloadQ()">Скачать SVG</button>
                     <button class="btn" onclick="clearQ()">Очистить</button>
+                </div>
+
+                <!-- Панель T-Land -->
+                <div class="tab-panel" id="panel-tland" style="display:none;">
+                    <div class="file-upload" id="tland-dropzone">
+                        <p>Перетащите SVG-файл сюда</p>
+                        <small>или нажмите для выбора</small>
+                    </div>
+                    <input type="file" id="tland-file" accept=".svg" style="display:none;">
+                    <div id="tland-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
+                    
+                    <button class="btn primary" onclick="processTland()">Конвертировать</button>
+                    <button class="btn" id="tland-download" style="display:none;" onclick="downloadTland()">Скачать SVG</button>
+                    <button class="btn" onclick="clearTland()">Очистить</button>
+                </div>
+
+                <!-- Панель Red-K -->
+                <div class="tab-panel" id="panel-redk" style="display:none;">
+                    <div class="file-upload" id="redk-svg-dropzone">
+                        <p>Загрузите schema.svg</p>
+                        <small>или нажмите для выбора</small>
+                    </div>
+                    <input type="file" id="redk-svg-file" accept=".svg" style="display:none;">
+                    <div id="redk-svg-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
+                    
+                    <div class="file-upload" id="redk-json-dropzone">
+                        <p>Загрузите schema.json</p>
+                        <small>или нажмите для выбора</small>
+                    </div>
+                    <input type="file" id="redk-json-file" accept=".json" style="display:none;">
+                    <div id="redk-json-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
+                    
+                    <button class="btn primary" onclick="processRedk()">Конвертировать</button>
+                    <button class="btn" id="redk-download" style="display:none;" onclick="downloadRedk()">Скачать SVG</button>
+                    <button class="btn" onclick="clearRedk()">Очистить</button>
+                </div>
+
+                <!-- Панель Rad-o -->
+                <div class="tab-panel" id="panel-rado" style="display:none;">
+                    <div class="file-upload" id="rado-dropzone">
+                        <p>Загрузите schema.json (с полем entities)</p>
+                        <small>или нажмите для выбора</small>
+                    </div>
+                    <input type="file" id="rado-file" style="display:none;">
+                    <div id="rado-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
+                    
+                    <button class="btn primary" onclick="processRado()">Конвертировать</button>
+                    <button class="btn" id="rado-download" style="display:none;" onclick="downloadRado()">Скачать SVG</button>
+                    <button class="btn" onclick="clearRado()">Очистить</button>
+                </div>
+
+                <!-- Панель Afisha -->
+                <div class="tab-panel" id="panel-afisha" style="display:none;">
+                    <div class="file-upload" id="afisha-dropzone">
+                        <p>Загрузите билетный файл (JSON с levels)</p>
+                        <small>или нажмите для выбора</small>
+                    </div>
+                    <input type="file" id="afisha-file" style="display:none;">
+                    <div id="afisha-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
+                    
+                    <button class="btn primary" onclick="processAfisha()">Конвертировать</button>
+                    <button class="btn" id="afisha-download" style="display:none;" onclick="downloadAfisha()">Скачать SVG</button>
+                    <button class="btn" onclick="clearAfisha()">Очистить</button>
                 </div>
 
             </div>
@@ -91,8 +158,12 @@
 
     <script src="js/utils.js"></script>
     <script src="js/ya-schema.js"></script>
-    <script src="js/ts-schema.js"></script>
+    <script src="js/tcloud-schema.js"></script>
     <script src="js/q-schema.js"></script>
+    <script src="js/tland-schema.js"></script>
+    <script src="js/redk-schema.js"></script>
+    <script src="js/rado-schema.js"></script>
+    <script src="js/afisha-schema.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
