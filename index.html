@@ -32,11 +32,11 @@
                 <!-- Панель Ya.Schema -->
                 <div class="tab-panel" id="panel-ya">
                     <div class="input-group">
-                        <label>SVG-подложка (JSON с полем result):</label>
+                        <label>JSON с SVG:</label>
                         <textarea id="ya-svg" placeholder='{"result":"&lt;svg&gt;..."}'></textarea>
                     </div>
                     <div class="input-group">
-                        <label>Данные с местами (JSON с levels):</label>
+                        <label>JSON с levels:</label>
                         <textarea id="ya-json" placeholder='{"stage":{},"levels":[]}'></textarea>
                     </div>
                     <div class="option">
@@ -51,7 +51,7 @@
                 <!-- Панель T-cloud -->
                 <div class="tab-panel" id="panel-tcloud" style="display:none;">
                     <div class="file-upload" id="tcloud-dropzone">
-                        <p>Перетащите SVG-файл сюда</p>
+                        <p>Загрузите SVG-файл</p>
                         <small>или нажмите для выбора</small>
                     </div>
                     <input type="file" id="tcloud-file" accept=".svg" style="display:none;">
@@ -64,7 +64,8 @@
                 <!-- Панель Q.Schema -->
                 <div class="tab-panel" id="panel-q" style="display:none;">
                     <div class="file-upload" id="q-dropzone">
-                        <p>Загрузите SVG-схему</p>
+                        <p>Загрузите SVG-файл</p>
+                         <small>или нажмите для выбора</small>
                     </div>
                     <input type="file" id="q-file" accept=".svg" style="display:none;">
                     <div id="q-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
@@ -80,8 +81,8 @@
                 <!-- Панель T-Land -->
                 <div class="tab-panel" id="panel-tland" style="display:none;">
                     <div class="file-upload" id="tland-dropzone">
-                        <p>Перетащите SVG-файл сюда</p>
-                        <small>или нажмите для выбора</small>
+                        <p>Загрузите SVG-файл</p>
+                         <small>или нажмите для выбора</small>
                     </div>
                     <input type="file" id="tland-file" accept=".svg" style="display:none;">
                     <div id="tland-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
@@ -129,7 +130,7 @@
                 <!-- Панель Afisha -->
                 <div class="tab-panel" id="panel-afisha" style="display:none;">
                     <div class="file-upload" id="afisha-dropzone">
-                        <p>Загрузите билетный файл (JSON с levels)</p>
+                        <p>Загрузите JSON с levels</p>
                         <small>или нажмите для выбора</small>
                     </div>
                     <input type="file" id="afisha-file" style="display:none;">
