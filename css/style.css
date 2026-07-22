@@ -115,21 +115,16 @@ body {
 
 /* Левая панель */
 .left-panel {
-    width: 38%;
-    min-width: 38%;
-    max-width: 38%;
+    flex: 0 0 40%;
     height: 100%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    flex-shrink: 0;
 }
 
 /* Правая панель (превью) */
 .right-panel {
-    width: 58%;
-    min-width: 58%;
-    max-width: 58%;
+    flex: 1;
     height: 100%;
     background: #161b22;
     border-radius: 8px;
@@ -139,7 +134,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
+    min-width: 0;
 }
 
 .right-panel:empty::after {
