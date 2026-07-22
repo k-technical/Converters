@@ -22,8 +22,27 @@ function switchTab(tabName) {
         panel.style.display = 'none';
     });
     
-    document.getElementById(`panel-${tabName}`).style.display = 'flex';
+    const targetPanel = document.getElementById('panel-' + tabName);
+    if (targetPanel) {
+        targetPanel.style.display = 'flex';
+    }
+    
     clearResult();
+    setStatus('Готов к работе: ' + getTabName(tabName));
+}
+
+// Получение имени таба для статуса
+function getTabName(tabName) {
+    const names = {
+        'ya': 'Ya.Schema',
+        'tcloud': 'T-cloud',
+        'q': 'Q.Schema',
+        'tland': 'T-Land',
+        'redk': 'Red-K',
+        'rado': 'Rad-o',
+        'afisha': 'Afisha'
+    };
+    return names[tabName] || tabName;
 }
 
 // Показ статуса
