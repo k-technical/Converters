@@ -4,16 +4,23 @@
     padding: 0;
 }
 
+html, body {
+    height: 100%;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: #0d1117;
     color: #c9d1d9;
-    min-height: 100vh;
     padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
 }
 
 .container {
     max-width: 1400px;
+    width: 100%;
     margin: 0 auto;
 }
 
@@ -21,7 +28,6 @@ body {
 .header {
     text-align: center;
     padding: 20px 0;
-    margin-bottom: 20px;
 }
 
 .header h1 {
@@ -39,20 +45,24 @@ body {
     font-size: 14px;
 }
 
-/* Табы */
+/* Табы - фиксированная ширина и высота */
 .tabs {
     display: flex;
     gap: 4px;
-    margin-bottom: 0;
     background: #161b22;
     border-radius: 12px 12px 0 0;
     padding: 6px 6px 0 6px;
     border: 1px solid #30363d;
     border-bottom: none;
+    height: 52px;
+    min-height: 52px;
+    max-height: 52px;
+    flex-shrink: 0;
+    overflow: hidden;
 }
 
 .tab {
-    padding: 12px 24px;
+    padding: 10px 24px;
     background: transparent;
     border: none;
     color: #8b949e;
@@ -60,23 +70,51 @@ body {
     font-size: 14px;
     font-weight: 500;
     border-radius: 8px 8px 0 0;
-    transition: all 0.3s;
+    transition: all 0.2s;
+    height: 46px;
+    min-height: 46px;
+    max-height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    /* Фиксированная ширина */
+    min-width: 100px;
+    /* Убираем влияние бордеров */
+    box-sizing: border-box;
+    /* Прозрачная рамка всегда */
+    border: 1px solid transparent;
+    border-bottom: none;
+    margin: 0;
 }
 
 .tab:hover {
     color: #c9d1d9;
     background: rgba(88, 166, 255, 0.1);
+    border-color: transparent;
 }
 
 .tab.active {
     color: #58a6ff;
     background: #0d1117;
-    border: 1px solid #30363d;
-    border-bottom: 1px solid #0d1117;
-    margin-bottom: -1px;
+    border-color: #30363d;
+    border-bottom: none;
+    /* Добавляем индикатор снизу без смещения */
+    position: relative;
 }
 
-/* Основной контент */
+.tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #58a6ff;
+    border-radius: 2px 2px 0 0;
+}
+
+/* Основной контент - ФИКСИРОВАННАЯ высота */
 .main-content {
     display: flex;
     gap: 20px;
@@ -85,37 +123,39 @@ body {
     border-top: none;
     border-radius: 0 0 12px 12px;
     padding: 24px;
-    min-height: 500px;
+    height: 520px;
+    min-height: 520px;
+    max-height: 520px;
+    overflow: hidden;
 }
 
 /* Левая панель */
 .left-panel {
     width: 40%;
+    min-width: 40%;
+    max-width: 40%;
+    height: 100%;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    overflow: hidden;
+    flex-shrink: 0;
 }
 
-/* Панель таба */
-.tab-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    width: 100%;
-}
-
-/* Правая панель (превью) */
+/* Правая панель */
 .right-panel {
     width: 60%;
+    min-width: 60%;
+    max-width: 60%;
+    height: 100%;
     background: #161b22;
     border-radius: 8px;
     border: 1px solid #30363d;
-    padding: 20px;
+    padding: 16px;
     overflow: auto;
-    min-height: 500px;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .right-panel:empty::after {
@@ -129,33 +169,60 @@ body {
     height: auto;
     background: white;
     border-radius: 4px;
+    max-height: 100%;
+}
+
+/* Панель таба - скролл внутри */
+.tab-panel {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px;
+}
+
+.tab-panel:first-of-type {
+    display: flex;
 }
 
 /* Группы ввода */
 .input-group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
+    flex-shrink: 0;
 }
 
 .input-group label {
-    font-size: 13px;
+    font-size: 12px;
     color: #8b949e;
     font-weight: 500;
 }
 
 textarea {
     width: 100%;
-    padding: 12px;
+    padding: 10px;
     background: #161b22;
     border: 1px solid #30363d;
-    border-radius: 8px;
+    border-radius: 6px;
     color: #c9d1d9;
     font-family: 'Cascadia Code', 'Fira Code', monospace;
     font-size: 12px;
-    resize: vertical;
-    min-height: 150px;
+    resize: none;
+    min-height: 60px;
     transition: border-color 0.3s;
+}
+
+textarea#ya-svg,
+textarea#ya-json {
+    min-height: 80px;
+}
+
+textarea#q-code {
+    min-height: 80px;
 }
 
 textarea:focus {
@@ -165,10 +232,10 @@ textarea:focus {
 
 /* Кнопки */
 .btn {
-    padding: 12px;
+    padding: 10px;
     border: 1px solid rgba(88, 166, 255, 0.3);
-    border-radius: 8px;
-    font-size: 14px;
+    border-radius: 6px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s;
@@ -176,6 +243,7 @@ textarea:focus {
     color: #58a6ff;
     backdrop-filter: blur(10px);
     width: 100%;
+    flex-shrink: 0;
 }
 
 .btn:hover {
@@ -193,16 +261,17 @@ textarea:focus {
     background: rgba(88, 166, 255, 0.3);
 }
 
-/* Статистика */
+/* Статус */
 .stats {
-    padding: 12px;
+    padding: 10px 16px;
     background: rgba(63, 185, 80, 0.1);
     border: 1px solid rgba(63, 185, 80, 0.3);
     border-radius: 8px;
     color: #3fb950;
     font-size: 13px;
     display: none;
-    margin-top: 16px;
+    margin-top: 12px;
+    min-height: 42px;
 }
 
 .stats.active {
@@ -216,18 +285,13 @@ textarea:focus {
 }
 
 /* Чекбоксы */
-.options {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
 .option {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     font-size: 13px;
     color: #8b949e;
+    flex-shrink: 0;
 }
 
 .option input[type="checkbox"] {
@@ -240,11 +304,12 @@ textarea:focus {
 .file-upload {
     border: 2px dashed #30363d;
     border-radius: 8px;
-    padding: 20px;
+    padding: 16px 12px;
     text-align: center;
     cursor: pointer;
     background: #161b22;
     transition: all 0.3s;
+    flex-shrink: 0;
 }
 
 .file-upload:hover {
@@ -258,27 +323,41 @@ textarea:focus {
 }
 
 .file-upload p {
-    margin-bottom: 5px;
+    margin-bottom: 4px;
+    font-size: 14px;
 }
 
 .file-upload small {
     color: #8b949e;
-    font-size: 12px;
+    font-size: 11px;
 }
 
 /* Инфо-текст */
 .info-text {
-    padding: 12px;
+    padding: 8px 12px;
     background: rgba(88, 166, 255, 0.05);
     border: 1px solid rgba(88, 166, 255, 0.1);
-    border-radius: 8px;
-    font-size: 12px;
+    border-radius: 6px;
+    font-size: 11px;
     color: #8b949e;
-    line-height: 1.6;
+    line-height: 1.5;
+    flex-shrink: 0;
 }
 
 .info-text p {
-    margin-bottom: 4px;
+    margin-bottom: 2px;
+}
+
+.info-text code {
+    background: #161b22;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    color: #58a6ff;
+}
+
+.info-text strong {
+    color: #c9d1d9;
 }
 
 /* Превью-контейнер */
@@ -286,18 +365,34 @@ textarea:focus {
     width: 100%;
     height: 100%;
     overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #previewContainer svg {
+    max-width: 100%;
+    height: auto;
     background: white;
     border-radius: 4px;
     box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    max-height: 100%;
+}
+
+/* Имя файла */
+#ts-file-name,
+#q-file-name,
+#tland-file-name {
+    padding: 4px 8px;
+    color: #3fb950;
+    font-size: 12px;
+    flex-shrink: 0;
 }
 
 /* Скроллбар */
 ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 5px;
+    height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -306,9 +401,131 @@ textarea:focus {
 
 ::-webkit-scrollbar-thumb {
     background: #30363d;
-    border-radius: 4px;
+    border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
     background: #484f58;
+}
+
+/* Анимация появления */
+.tab-panel {
+    animation: fadeIn 0.12s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Сектор-группы в превью */
+.sector-group {
+    transition: all 0.2s;
+}
+
+.sector-group:hover {
+    filter: drop-shadow(0 0 4px rgba(88, 166, 255, 0.3));
+}
+
+/* Кнопки скачивания */
+#ya-download,
+#ts-download,
+#q-download,
+#tland-download {
+    display: none;
+}
+
+/* Убираем лишние отступы */
+#panel-ya .btn,
+#panel-ts .btn,
+#panel-q .btn,
+#panel-tland .btn {
+    margin: 0;
+}
+
+
+/* Стили для Red-K */
+.style-group {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 12px;
+    background: #161b22;
+    border-radius: 8px;
+    border: 1px solid #30363d;
+    flex-shrink: 0;
+}
+
+.style-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 80px;
+}
+
+.style-item label {
+    font-size: 11px;
+    color: #8b949e;
+    font-weight: 500;
+}
+
+.style-item input {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: #c9d1d9;
+    font-size: 13px;
+    width: 100%;
+}
+
+.style-item input[type="color"] {
+    padding: 2px;
+    height: 36px;
+    cursor: pointer;
+}
+
+.style-item input:focus {
+    outline: none;
+    border-color: #58a6ff;
+}
+
+/* Для Red-K двойная загрузка */
+#panel-redk .file-upload {
+    margin-bottom: 4px;
+}
+
+#panel-redk .file-upload:last-of-type {
+    margin-bottom: 0;
+}
+
+/* Дополнительные стили для Rad-o */
+.info-text code {
+    background: #161b22;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #58a6ff;
+}
+
+.info-text p {
+    margin: 4px 0;
+}
+
+.info-text strong {
+    color: #c9d1d9;
+}
+
+#previewContainer svg {
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    max-width: 100%;
+    height: auto;
+    max-height: 100%;
 }
