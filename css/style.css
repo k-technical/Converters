@@ -106,7 +106,7 @@ body {
     border: 1px solid #30363d;
     border-top: none;
     border-radius: 0 0 12px 12px;
-    padding: 24px;
+    padding: 24px 24px 24px 24px;
     height: 520px;
     min-height: 520px;
     max-height: 520px;
@@ -140,6 +140,7 @@ body {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    margin-right: 4px; /* Небольшой отступ справа */
 }
 
 .right-panel:empty::after {
