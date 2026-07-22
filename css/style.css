@@ -45,7 +45,7 @@ body {
     font-size: 14px;
 }
 
-/* Табы - фиксированная ширина и высота */
+/* Табы */
 .tabs {
     display: flex;
     gap: 4px;
@@ -64,7 +64,8 @@ body {
 .tab {
     padding: 10px 24px;
     background: transparent;
-    border: none;
+    border: 1px solid transparent;
+    border-bottom: none;
     color: #8b949e;
     cursor: pointer;
     font-size: 14px;
@@ -78,43 +79,26 @@ body {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    /* Фиксированная ширина */
-    min-width: 100px;
-    /* Убираем влияние бордеров */
-    box-sizing: border-box;
-    /* Прозрачная рамка всегда */
-    border: 1px solid transparent;
-    border-bottom: none;
     margin: 0;
+    border-bottom: 2px solid transparent;
 }
 
 .tab:hover {
     color: #c9d1d9;
-    background: rgba(88, 166, 255, 0.1);
-    border-color: transparent;
+    background: rgba(88, 166, 255, 0.05);
+    border-bottom-color: rgba(88, 166, 255, 0.3);
 }
 
 .tab.active {
     color: #58a6ff;
     background: #0d1117;
     border-color: #30363d;
-    border-bottom: none;
-    /* Добавляем индикатор снизу без смещения */
-    position: relative;
+    border-bottom: 2px solid #58a6ff;
+    margin-bottom: 0;
+    padding-bottom: 10px;
 }
 
-.tab.active::after {
-    content: '';
-    position: absolute;
-    bottom: -1px;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: #58a6ff;
-    border-radius: 2px 2px 0 0;
-}
-
-/* Основной контент - ФИКСИРОВАННАЯ высота */
+/* Основной контент */
 .main-content {
     display: flex;
     gap: 20px;
@@ -141,7 +125,7 @@ body {
     flex-shrink: 0;
 }
 
-/* Правая панель */
+/* Правая панель (превью) */
 .right-panel {
     width: 60%;
     min-width: 60%;
@@ -150,7 +134,7 @@ body {
     background: #161b22;
     border-radius: 8px;
     border: 1px solid #30363d;
-    padding: 16px;
+    padding: 20px;
     overflow: auto;
     display: flex;
     align-items: center;
@@ -172,7 +156,7 @@ body {
     max-height: 100%;
 }
 
-/* Панель таба - скролл внутри */
+/* Панель таба */
 .tab-panel {
     display: none;
     flex-direction: column;
@@ -382,7 +366,10 @@ textarea:focus {
 /* Имя файла */
 #ts-file-name,
 #q-file-name,
-#tland-file-name {
+#tland-file-name,
+#rado-file-name,
+#redk-svg-file-name,
+#redk-json-file-name {
     padding: 4px 8px;
     color: #3fb950;
     font-size: 12px;
@@ -433,69 +420,27 @@ textarea:focus {
 
 /* Кнопки скачивания */
 #ya-download,
-#ts-download,
+#tcloud-download,
 #q-download,
-#tland-download {
+#tland-download,
+#redk-download,
+#rado-download,
+#afisha-download {
     display: none;
 }
 
 /* Убираем лишние отступы */
 #panel-ya .btn,
-#panel-ts .btn,
+#panel-tcloud .btn,
 #panel-q .btn,
-#panel-tland .btn {
+#panel-tland .btn,
+#panel-redk .btn,
+#panel-rado .btn,
+#panel-afisha .btn {
     margin: 0;
 }
 
-
-/* Стили для Red-K */
-.style-group {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    padding: 12px;
-    background: #161b22;
-    border-radius: 8px;
-    border: 1px solid #30363d;
-    flex-shrink: 0;
-}
-
-.style-item {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    flex: 1;
-    min-width: 80px;
-}
-
-.style-item label {
-    font-size: 11px;
-    color: #8b949e;
-    font-weight: 500;
-}
-
-.style-item input {
-    background: #0d1117;
-    border: 1px solid #30363d;
-    border-radius: 6px;
-    padding: 6px 10px;
-    color: #c9d1d9;
-    font-size: 13px;
-    width: 100%;
-}
-
-.style-item input[type="color"] {
-    padding: 2px;
-    height: 36px;
-    cursor: pointer;
-}
-
-.style-item input:focus {
-    outline: none;
-    border-color: #58a6ff;
-}
-
-/* Для Red-K двойная загрузка */
+/* Стили для Red-K двойная загрузка */
 #panel-redk .file-upload {
     margin-bottom: 4px;
 }
@@ -504,7 +449,7 @@ textarea:focus {
     margin-bottom: 0;
 }
 
-/* Дополнительные стили для Rad-o */
+/* Стили для Rad-o */
 .info-text code {
     background: #161b22;
     padding: 2px 8px;
