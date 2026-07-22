@@ -28,21 +28,7 @@ function switchTab(tabName) {
     }
     
     clearResult();
-    setStatus('Готов к работе: ' + getTabName(tabName));
-}
-
-// Получение имени таба для статуса
-function getTabName(tabName) {
-    const names = {
-        'ya': 'Ya.Schema',
-        'tcloud': 'T-cloud',
-        'q': 'Q.Schema',
-        'tland': 'T-Land',
-        'redk': 'Red-K',
-        'rado': 'Rad-o',
-        'afisha': 'Afisha'
-    };
-    return names[tabName] || tabName;
+    // Убираем автоматическое сообщение при переключении
 }
 
 // Показ статуса
@@ -72,6 +58,7 @@ function downloadCurrentResult(filename) {
 function clearResult() {
     document.getElementById('previewContainer').innerHTML = '';
     document.getElementById('status').className = 'stats';
+    document.getElementById('status').textContent = '';
     currentSvgResult = null;
     
     document.querySelectorAll('[id$="-download"]').forEach(btn => {
