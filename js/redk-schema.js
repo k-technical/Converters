@@ -1,4 +1,3 @@
-// Red-K Schema - финальный сборщик схемы
 let redkSvgText = null;
 let redkJsonData = null;
 let redkSvgLoaded = false;
@@ -10,73 +9,8 @@ const REDK_SEAT_RADIUS = 12;
 const REDK_STROKE_WIDTH = 1;
 
 function initRedk() {
-    // SVG загрузка
-    const svgDropzone = document.getElementById('redk-svg-dropzone');
-    const svgFileInput = document.getElementById('redk-svg-file');
-    
-    svgDropzone.addEventListener('click', () => svgFileInput.click());
-    
-    svgDropzone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        svgDropzone.style.borderColor = '#58a6ff';
-        svgDropzone.style.background = 'rgba(88, 166, 255, 0.1)';
-    });
-    
-    svgDropzone.addEventListener('dragleave', () => {
-        svgDropzone.style.borderColor = '#30363d';
-        svgDropzone.style.background = '#161b22';
-    });
-    
-    svgDropzone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        svgDropzone.style.borderColor = '#30363d';
-        svgDropzone.style.background = '#161b22';
-        const file = e.dataTransfer.files[0];
-        if (file && (file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg'))) {
-            readRedkSvgFile(file);
-        } else {
-            setStatus('Загрузите SVG файл', true);
-        }
-    });
-    
-    svgFileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) readRedkSvgFile(file);
-    });
-    
-    // JSON загрузка
-    const jsonDropzone = document.getElementById('redk-json-dropzone');
-    const jsonFileInput = document.getElementById('redk-json-file');
-    
-    jsonDropzone.addEventListener('click', () => jsonFileInput.click());
-    
-    jsonDropzone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        jsonDropzone.style.borderColor = '#58a6ff';
-        jsonDropzone.style.background = 'rgba(88, 166, 255, 0.1)';
-    });
-    
-    jsonDropzone.addEventListener('dragleave', () => {
-        jsonDropzone.style.borderColor = '#30363d';
-        jsonDropzone.style.background = '#161b22';
-    });
-    
-    jsonDropzone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        jsonDropzone.style.borderColor = '#30363d';
-        jsonDropzone.style.background = '#161b22';
-        const file = e.dataTransfer.files[0];
-        if (file && file.name.toLowerCase().endsWith('.json')) {
-            readRedkJsonFile(file);
-        } else {
-            setStatus('Загрузите JSON файл', true);
-        }
-    });
-    
-    jsonFileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) readRedkJsonFile(file);
-    });
+    setupDropzone('redk-svg-dropzone', 'redk-svg-file', readRedkSvgFile);
+    setupDropzone('redk-json-dropzone', 'redk-json-file', readRedkJsonFile);
 }
 
 function readRedkSvgFile(file) {
@@ -149,7 +83,10 @@ function isBackgroundRect(element) {
     const width = element.getAttribute('width');
     const height = element.getAttribute('height');
     const style = element.getAttribute('style') || '';
-    return width === '5500' && height === '4000' && style.includes('fill: #eeeff4');
+    if (width === '5500' && height === '4000' && style.includes('fill: #eeeff4')) return true;
+    // Любой размер: фон равен viewBox схемы
+    const vb = window.__redkVB;
+    return !!(vb && Math.abs(parseFloat(width) - vb[2]) < 1 && Math.abs(parseFloat(height) - vb[3]) < 1 && /fill:\s*#eeeff4/i.test(style));
 }
 
 // ---- Проверка, является ли элемент декоративным контуром подложки ----
@@ -273,6 +210,29 @@ function pointInContour(point, contourElement) {
     }
 }
 
+// Площадь bbox контура, если он содержит точку, иначе null
+function contourAreaIfContains(point, contourElement) {
+    let svg = null;
+    try {
+        svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.style.position = 'absolute';
+        svg.style.visibility = 'hidden';
+        document.body.appendChild(svg);
+        const clone = contourElement.cloneNode(true);
+        svg.appendChild(clone);
+        const pt = svg.createSVGPoint();
+        pt.x = point.x;
+        pt.y = point.y;
+        if (!clone.isPointInFill(pt)) return null;
+        const bb = clone.getBBox();
+        return bb.width * bb.height;
+    } catch (e) {
+        return null;
+    } finally {
+        if (svg && svg.parentNode) svg.parentNode.removeChild(svg);
+    }
+}
+
 function processRedk() {
     try {
         if (!redkSvgLoaded || !redkJsonLoaded) {
@@ -313,6 +273,7 @@ function buildRedkSVG() {
         }
     });
 
+    window.__redkVB = parseViewBox(svgRoot.getAttribute('viewBox'));
     const collections = {
         texts: [],
         backgroundRects: [],
@@ -339,11 +300,14 @@ function buildRedkSVG() {
         const testPoint = { x: seats[0].centerX, y: seats[0].centerY };
         let foundContour = null;
         
+        // Из всех контуров, содержащих точку, берём самый маленький (внутренний)
+        let bestArea = Infinity;
         for (let i = 0; i < collections.otherContours.length; i++) {
             const contour = collections.otherContours[i];
-            if (pointInContour(testPoint, contour)) {
+            const area = contourAreaIfContains(testPoint, contour);
+            if (area !== null && area < bestArea) {
+                bestArea = area;
                 foundContour = contour;
-                break;
             }
         }
         
@@ -371,7 +335,7 @@ function buildRedkSVG() {
 
     // Фиксированные настройки мест
     const stroke = REDK_STROKE_COLOR;
-    const radius = REDK_SEAT_RADIUS;
+    const radius = seatR(REDK_SEAT_RADIUS);
     const strokeW = REDK_STROKE_WIDTH;
 
     for (let [sectorName, originalElement] of sectorToContourMap.entries()) {
@@ -401,7 +365,8 @@ function buildRedkSVG() {
             circle.setAttribute('stroke-width', strokeW);
 
             const label = formatSeatLabel(seat.id);
-            const encodedId = encodeForId(label);
+            const idEl = document.getElementById('opt-idmode');
+            const encodedId = (idEl && idEl.value === 'plain') ? label : encodeForId(label);
             circle.setAttribute('id', encodedId);
             circle.setAttribute('class', 'st1');
 
