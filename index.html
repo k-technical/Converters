@@ -49,14 +49,24 @@
                 <!-- Панель Ya.Schema 2 Public -->
                 <div class="tab-panel" id="panel-ya">
                     <div class="input-group">
+                        <label>Автозагрузка по ссылке на виджет:</label>
+                        <input type="text" id="ya-link" placeholder="Ссылка на виджет схемы (https://...)">
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn" onclick="yaOpenWidget()">Открыть и забрать данные</button>
+                            <button class="btn" onclick="yaPasteBundle()">Вставить из буфера</button>
+                        </div>
+                        <div class="hint">Нужен скрипт-помощник из папки userscripts. Без него загрузите два файла вручную ниже.</div>
+                    </div>
+
+                    <div class="input-group">
                         <label>Код с местами (JSON с levels):</label>
                         <textarea id="ya-json" placeholder='{"stage":{},"levels":[]}'></textarea>
                     </div>
                     <div class="input-group">
-                        <label>Файл-подложка (SVG, любой файл):</label>
+                        <label>Файлы схемы (JSON и подложка, можно оба сразу, любой формат):</label>
                         <div class="file-upload" id="ya-dropzone">
-                            <p>Перетащите файл с подложкой сюда</p>
-                            <small>или нажмите для выбора (любой файл)</small>
+                            <p>Перетащите сюда оба файла</p>
+                            <small>или нажмите для выбора: JSON и подложка определяются автоматически</small>
                         </div>
                         <input type="file" id="ya-file" style="display:none;">
                         <div id="ya-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
@@ -78,6 +88,15 @@
                     </div>
                     <input type="file" id="tcloud-file" style="display:none;">
                     <div id="tcloud-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
+                    <div class="option">
+                        <input type="checkbox" id="tcloud-scale" checked>
+                        <label for="tcloud-scale">Масштабировать схему под размер места</label>
+                    </div>
+                    <div class="params">
+                        <label>Размер места после масштаба, px<input type="number" id="tcloud-target" value="15" min="1" step="0.5"></label>
+                        <label>Места, % от этого размера<input type="number" id="tcloud-pct" value="80" min="10" max="100" step="1"></label>
+                    </div>
+                    <div class="hint">Коэффициент = размер места из поля / исходный размер места. Итоговое место = 15 × 80% = 12 px.</div>
                     <button class="btn primary" onclick="processTcloud()">Конвертировать</button>
                     <button class="btn" id="tcloud-download" style="display:none;" onclick="downloadTcloud()">Скачать SVG</button>
                     <button class="btn" onclick="clearTcloud()">Очистить</button>
