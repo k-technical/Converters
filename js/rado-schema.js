@@ -1,42 +1,9 @@
-// Rad-o Schema - конвертер schema.json в SVG схему
 let radoJsonData = null;
 let radoJsonLoaded = false;
 let radoFileName = '';
 
 function initRado() {
-    const dropzone = document.getElementById('rado-dropzone');
-    const fileInput = document.getElementById('rado-file');
-
-    dropzone.addEventListener('click', () => fileInput.click());
-
-    dropzone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropzone.style.borderColor = '#58a6ff';
-        dropzone.style.background = 'rgba(88, 166, 255, 0.1)';
-    });
-
-    dropzone.addEventListener('dragleave', () => {
-        dropzone.style.borderColor = '#30363d';
-        dropzone.style.background = '#161b22';
-    });
-
-    dropzone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropzone.style.borderColor = '#30363d';
-        dropzone.style.background = '#161b22';
-        
-        const file = e.dataTransfer.files[0];
-        if (file) {
-            readRadoFile(file);
-        } else {
-            setStatus('Загрузите файл с данными', true);
-        }
-    });
-
-    fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) readRadoFile(file);
-    });
+    setupDropzone('rado-dropzone', 'rado-file', readRadoFile);
 }
 
 function readRadoFile(file) {
@@ -147,6 +114,9 @@ function buildRadoSVG(data) {
     svg.setAttribute('viewBox', '0 0 3000 1600');
     svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     svg.style.backgroundColor = '#ffffff';
+    // Подключаем к невидимому контейнеру, чтобы getBBox работал
+    const host = hiddenHost();
+    host.appendChild(svg);
 
     if (data.entities) {
         data.entities.forEach(entity => {
@@ -169,14 +139,26 @@ function buildRadoSVG(data) {
         });
     }
     
+    // viewBox по размеру содержимого (если измерить нельзя, остаётся 0 0 3000 1600)
+    try {
+        const bb = svg.getBBox();
+        if (bb.width > 0 && bb.height > 0) {
+            const p = 20;
+            svg.setAttribute('viewBox', (bb.x - p) + ' ' + (bb.y - p) + ' ' + (bb.width + 2 * p) + ' ' + (bb.height + 2 * p));
+        }
+    } catch (e) { /* оставляем стандартный viewBox */ }
+
     const serializer = new XMLSerializer();
-    return serializer.serializeToString(svg);
+    const result = serializer.serializeToString(svg);
+    host.remove();
+    return result;
 }
 
 function drawRadoEntranceBlock(parent, entity, ns) {
     try {
         const group = document.createElementNS(ns, 'g');
         group.setAttribute('id', entity.name || 'entrance-' + entity.id);
+        parent.appendChild(group); // сначала в DOM, чтобы getBBox работал
         
         const path = document.createElementNS(ns, 'path');
         path.setAttribute('d', entity.points);
@@ -208,8 +190,6 @@ function drawRadoEntranceBlock(parent, entity, ns) {
             
             group.appendChild(text);
         }
-        
-        parent.appendChild(group);
     } catch(e) {
         console.warn('Ошибка entranceBlock:', e);
     }
@@ -275,11 +255,11 @@ function drawRadoRowBlock(parent, entity, ns) {
                             const circle = document.createElementNS(ns, 'circle');
                             circle.setAttribute('cx', String(pos.x || 0));
                             circle.setAttribute('cy', String(pos.y || 0));
-                            circle.setAttribute('r', String(seatSize));
+                            circle.setAttribute('r', String(seatR(seatSize)));
                             circle.setAttribute('fill', 'none');
                             circle.setAttribute('stroke', '#AEAEAE');
                             circle.setAttribute('stroke-width', '1');
-                            circle.setAttribute('id', 'Ряд_' + (row.name || rowNumber) + '|' + seatId + '-' + seatId);
+                            circle.setAttribute('id', fmtId((row.name || rowNumber), seatId, false));
                             
                             group.appendChild(circle);
                         }
@@ -303,11 +283,11 @@ function drawRadoRowBlock(parent, entity, ns) {
                         const circle = document.createElementNS(ns, 'circle');
                         circle.setAttribute('cx', String(x + seatSize));
                         circle.setAttribute('cy', String(y + seatSize));
-                        circle.setAttribute('r', String(seatSize));
+                        circle.setAttribute('r', String(seatR(seatSize)));
                         circle.setAttribute('fill', 'none');
                         circle.setAttribute('stroke', '#AEAEAE');
                         circle.setAttribute('stroke-width', '1');
-                        circle.setAttribute('id', 'Ряд_' + (row.name || rowNumber) + '|' + seatId + '-' + seatId);
+                        circle.setAttribute('id', fmtId((row.name || rowNumber), seatId, false));
                         
                         group.appendChild(circle);
                     }
