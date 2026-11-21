@@ -1,22 +1,34 @@
 let yaSvgContent = '';
 
 function initYa() {
-    setupDropzone('ya-dropzone', 'ya-file', readYaFile);
+    setupDropzone('ya-dropzone', 'ya-file', readYaFiles, true);
 }
 
-function readYaFile(file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        yaSvgContent = e.target.result;
-        const dropzone = document.getElementById('ya-dropzone');
-        dropzone.classList.add('active');
-        dropzone.querySelector('p').textContent = 'Файл загружен';
-        const fileName = document.getElementById('ya-file-name');
-        fileName.textContent = '✓ Загружен: ' + file.name;
-        fileName.style.display = 'block';
-    };
-    reader.onerror = () => setStatus('Ошибка чтения файла', true);
-    reader.readAsText(file);
+// Принимает один или два файла сразу: JSON с levels и подложку определяются по содержимому
+async function readYaFiles(files) {
+    const names = [];
+    for (const file of files) {
+        const text = await file.text();
+        const t = text.replace(/^\uFEFF/, '').trim();
+        if (/<svg[\s>]/i.test(t.slice(0, 2000))) {
+            yaSvgContent = t;
+            names.push('подложка: ' + file.name);
+        } else if (t[0] === '{' || t[0] === '[' || t[0] === '"') {
+            document.getElementById('ya-json').value = t;
+            names.push('JSON: ' + file.name);
+        } else {
+            setStatus('Не удалось определить файл «' + file.name + '» (нужен JSON или SVG)', true);
+        }
+    }
+    if (!names.length) return;
+    const dz = document.getElementById('ya-dropzone');
+    dz.classList.add('active');
+    dz.querySelector('p').textContent = 'Файлы загружены';
+    const label = document.getElementById('ya-file-name');
+    label.textContent = '✓ ' + names.join(' | ');
+    label.style.display = 'block';
+    // Есть оба файла: сразу конвертируем
+    if (yaSvgContent && document.getElementById('ya-json').value.trim()) processYa();
 }
 
 function yaCleanGroupName(name) {
@@ -24,8 +36,11 @@ function yaCleanGroupName(name) {
     return name.replace(/[,&\-+()]/g, '').trim();
 }
 
+let yaStats = [];
+
 function yaBuildGroups(data) {
     const groups = [];
+    yaStats = [];
     if (!data.levels || !Array.isArray(data.levels)) return groups;
     const r = seatR(5);
 
@@ -55,6 +70,7 @@ function yaBuildGroups(data) {
         }
         if (content.length > 0) {
             groups.push('  <g id="' + esc(groupName) + '">\n' + content.join('\n') + '\n  </g>');
+            yaStats.push({ name: groupName, count: (level.seats || []).length });
         }
     });
     return groups;
@@ -80,9 +96,34 @@ function yaMerge() {
     const end = yaSvgContent.lastIndexOf('</svg>');
     if (end < 0) throw new Error('В файле подложки нет закрывающего </svg>');
 
-    const svg = yaSvgContent.slice(0, end)
-        + '\n  <g id="tables-from-json">\n' + groups.join('\n') + '\n  </g>\n</svg>';
-    return { svg, groupsCount: groups.length };
+    // Размер подложки: viewBox или width/height
+    const rootTag = (yaSvgContent.match(/<svg[^>]*>/i) || [''])[0];
+    const vbm = rootTag.match(/viewBox\s*=\s*"([^"]*)"/i);
+    let box = vbm ? parseViewBox(vbm[1]) : null;
+    if (!box) {
+        const wm = rootTag.match(/\swidth\s*=\s*"([\d.]+)/i), hm = rootTag.match(/\sheight\s*=\s*"([\d.]+)/i);
+        if (wm && hm) box = [0, 0, parseFloat(wm[1]), parseFloat(hm[1])];
+    }
+
+    // Места за пределами подложки: скорее всего подложка от другой схемы
+    if (box) {
+        let outside = 0;
+        data.levels.forEach(l => (l.seats || []).forEach(s => {
+            if (s.x_coord == null || s.y_coord == null) return;
+            if (s.x_coord < box[0] || s.y_coord < box[1] || s.x_coord > box[0] + box[2] || s.y_coord > box[1] + box[3]) outside++;
+        }));
+        if (outside > 0) addWarn(outside + ' мест за пределами подложки (проверьте, что подложка от этой схемы)');
+    }
+
+    let head = yaSvgContent.slice(0, end);
+    // Нет viewBox: добавляем, чтобы схема целиком помещалась в превью
+    if (!vbm && box && rootTag) {
+        head = head.replace(rootTag, rootTag.replace(/<svg/i, '<svg viewBox="' + box.join(' ') + '"'));
+    }
+
+    const svg = head + '\n  <g id="tables-from-json">\n' + groups.join('\n') + '\n  </g>\n</svg>';
+    const seatsCount = yaStats.reduce((n, g) => n + g.count, 0);
+    return { svg, groupsCount: groups.length, seatsCount };
 }
 
 function processYa() {
@@ -93,7 +134,9 @@ function processYa() {
         if (shouldRotate) finalSvg = rotateSVG(finalSvg);
 
         showPreview(finalSvg);
-        setStatus('✓ Объединено: ' + result.groupsCount + ' групп' + (shouldRotate ? ' (развёрнуто на 180°)' : ''));
+        const details = yaStats.map(g => g.name + ' (' + g.count + ')').join(', ');
+        setStatus('✓ Объединено: ' + result.seatsCount + ' мест, ' + result.groupsCount + ' групп' + (shouldRotate ? ' (развёрнуто на 180°)' : '') +
+            (details ? '\n📊 ' + details : ''));
         document.getElementById('ya-download').style.display = 'block';
     } catch (e) {
         handleError(e);
@@ -138,10 +181,11 @@ function clearYa() {
     yaSvgContent = '';
     document.getElementById('ya-json').value = '';
     document.getElementById('ya-file').value = '';
+    yaStats = [];
     document.getElementById('ya-rotate').checked = false;
     const dropzone = document.getElementById('ya-dropzone');
     dropzone.classList.remove('active');
-    dropzone.querySelector('p').textContent = 'Перетащите файл с подложкой сюда';
+    dropzone.querySelector('p').textContent = 'Перетащите сюда оба файла';
     document.getElementById('ya-file-name').style.display = 'none';
     clearResult();
 }
