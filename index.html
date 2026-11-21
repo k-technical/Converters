@@ -29,13 +29,16 @@
 
         <!-- Табы -->
         <div class="tabs">
-            <button class="tab active" data-tab="ya">Ya.Schema</button>
+            <button class="tab active" data-tab="ya">Ya.Schema 2 Public</button>
             <button class="tab" data-tab="tcloud">T-cloud</button>
             <button class="tab" data-tab="q">Q.Schema</button>
             <button class="tab" data-tab="tland">T-Land</button>
             <button class="tab" data-tab="redk">Red-K</button>
             <button class="tab" data-tab="rado">Rad-o</button>
             <button class="tab" data-tab="afisha">Afisha</button>
+            <button class="tab" data-tab="inti">Inti-IF</button>
+            <button class="tab" data-tab="afilist">Afi-List</button>
+            <button class="tab" data-tab="epol">E-Pol</button>
         </div>
 
         <!-- Основной контент -->
@@ -160,6 +163,77 @@
                     <button class="btn" onclick="clearAfisha()">Очистить</button>
                 </div>
 
+                <!-- Панель Inti-IF -->
+                <div class="tab-panel" id="panel-inti" style="display:none;">
+                    <div class="input-group">
+                        <label>1. Адрес схемы</label>
+                        <div class="hint">Если адрес фрейма не тот (с параметрами после ?), вставьте в консоль код, он вернёт нужный адрес.</div>
+                        <div class="code"><code id="inti-c1">location.origin+location.pathname.replace(/\/?$/,'/')</code><button class="btn" data-copy="inti-c1">Копировать код</button></div>
+                    </div>
+                    <div class="input-group">
+                        <label>2. Данные мест</label>
+                        <div class="hint">На открытой странице схемы выполните код в консоли и вставьте результат ниже.</div>
+                        <div class="code"><code id="inti-c2">copy(JSON.stringify(jl.find(x=>Array.isArray(x)&&Array.isArray(x[0])&&Array.isArray(x[1])&&x[1].length>20&&Array.isArray(x[1][0])&&x[1][0].length==6&&typeof x[1][0][1]=='string'&&typeof x[1][0][3]=='number'&&typeof x[1][0][4]=='number')))</code><button class="btn" data-copy="inti-c2">Копировать код</button></div>
+                        <textarea id="inti-src" placeholder='[[[77962554,"Сектор a",...]],[[414328529,"1","1",390,260,77962554],...]]'></textarea>
+                    </div>
+                    <div class="input-group">
+                        <label>3. Файл-подложка (необязательно, любой файл)</label>
+                        <div class="file-upload" id="inti-dropzone">
+                            <p>Перетащите файл с подложкой сюда</p>
+                            <small>или нажмите для выбора</small>
+                        </div>
+                        <input type="file" id="inti-file" style="display:none;">
+                        <div id="inti-subinfo" class="hint"></div>
+                        <div class="hint">Или вставьте SVG-код подложки:</div>
+                        <textarea id="inti-subtxt" placeholder="&lt;svg ...&gt;"></textarea>
+                    </div>
+                    <div class="input-group">
+                        <label>4. Параметры (радиус берётся из общих настроек, по умолчанию 8)</label>
+                        <div class="params">
+                            <label>Сектор<select id="inti-sec"><option value="">все</option></select></label>
+                            <label>Формат id ({r} ряд, {s} место, {sec} сектор)<input type="text" id="inti-fmt" value="Ряд_{r}|{s}-{s}"></label>
+                            <div class="option"><input type="checkbox" id="inti-col" checked><label for="inti-col">цвет по секторам</label></div>
+                            <div class="option"><input type="checkbox" id="inti-grp" checked><label for="inti-grp">группировать по секторам</label></div>
+                        </div>
+                    </div>
+                    <button class="btn primary" onclick="processInti()">Конвертировать</button>
+                    <button class="btn" id="inti-download" style="display:none;" onclick="downloadInti()">Скачать SVG</button>
+                    <button class="btn" onclick="clearInti()">Очистить</button>
+                </div>
+
+                <!-- Панель Afi-List -->
+                <div class="tab-panel" id="panel-afilist" style="display:none;">
+                    <div class="input-group">
+                        <label>JSON схемы (places, decors):</label>
+                        <textarea id="afilist-json" placeholder='{"places":[...],"decors":[...]}'></textarea>
+                    </div>
+                    <div class="input-group">
+                        <label>Или загрузите файл (любой формат):</label>
+                        <div class="file-upload" id="afilist-dropzone">
+                            <p>Перетащите файл сюда</p>
+                            <small>или нажмите для выбора</small>
+                        </div>
+                        <input type="file" id="afilist-file" style="display:none;">
+                        <div id="afilist-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
+                    </div>
+                    <button class="btn primary" onclick="processAfilist()">Конвертировать</button>
+                    <button class="btn" id="afilist-download" style="display:none;" onclick="downloadAfilist()">Скачать SVG</button>
+                    <button class="btn" onclick="clearAfilist()">Очистить</button>
+                </div>
+
+                <!-- Панель E-Pol -->
+                <div class="tab-panel" id="panel-epol" style="display:none;">
+                    <div class="file-upload" id="epol-dropzone">
+                        <p>Загрузите JSON-файл схемы</p>
+                        <small>Ожидается objects[] с type="circle", left, top, sequence_number</small>
+                    </div>
+                    <input type="file" id="epol-file" style="display:none;">
+                    <div id="epol-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
+                    <button class="btn primary" onclick="processEpol()">Конвертировать</button>
+                    <button class="btn" id="epol-download" style="display:none;" onclick="downloadEpol()">Скачать SVG</button>
+                    <button class="btn" onclick="clearEpol()">Очистить</button>
+                </div>
+
             </div>
             <!-- Конец left-panel -->
 
@@ -184,6 +258,9 @@
     <script src="js/redk-schema.js"></script>
     <script src="js/rado-schema.js"></script>
     <script src="js/afisha-schema.js"></script>
+    <script src="js/inti-schema.js"></script>
+    <script src="js/afilist-schema.js"></script>
+    <script src="js/epol-schema.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
