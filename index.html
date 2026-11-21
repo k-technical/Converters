@@ -13,6 +13,20 @@
             <p>JSON-SVG</p>
         </div>
 
+        <!-- Общие настройки -->
+        <div class="options-bar">
+            <label>Формат id
+                <select id="opt-idmode">
+                    <option value="auto">как в модуле</option>
+                    <option value="plain">Ряд_1|5-5</option>
+                    <option value="enc">Ряд_x5F_1_x7C_5-5</option>
+                </select>
+            </label>
+            <label>Радиус мест
+                <input type="number" id="opt-radius" min="1" step="0.5" placeholder="по умолчанию">
+            </label>
+        </div>
+
         <!-- Табы -->
         <div class="tabs">
             <button class="tab active" data-tab="ya">Ya.Schema</button>
@@ -29,18 +43,23 @@
             <!-- Левая панель -->
             <div class="left-panel">
                 
-                <!-- Панель Ya.Schema -->
+                <!-- Панель Ya.Schema 2 Public -->
                 <div class="tab-panel" id="panel-ya">
                     <div class="input-group">
-                        <label>JSON с SVG:</label>
-                        <textarea id="ya-svg" placeholder='{"result":"&lt;svg&gt;..."}'></textarea>
-                    </div>
-                    <div class="input-group">
-                        <label>JSON с levels:</label>
+                        <label>Код с местами (JSON с levels):</label>
                         <textarea id="ya-json" placeholder='{"stage":{},"levels":[]}'></textarea>
                     </div>
+                    <div class="input-group">
+                        <label>Файл-подложка (SVG, любой файл):</label>
+                        <div class="file-upload" id="ya-dropzone">
+                            <p>Перетащите файл с подложкой сюда</p>
+                            <small>или нажмите для выбора (любой файл)</small>
+                        </div>
+                        <input type="file" id="ya-file" style="display:none;">
+                        <div id="ya-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
+                    </div>
                     <div class="option">
-                        <input type="checkbox" id="ya-rotate" onchange="processYa()">
+                        <input type="checkbox" id="ya-rotate" onchange="yaRotateChanged()">
                         <label for="ya-rotate">Развернуть на 180°</label>
                     </div>
                     <button class="btn primary" onclick="processYa()">Конвертировать</button>
@@ -54,7 +73,7 @@
                         <p>Загрузите SVG-файл</p>
                         <small>Нажмите для выбора</small>
                     </div>
-                    <input type="file" id="tcloud-file" accept=".svg" style="display:none;">
+                    <input type="file" id="tcloud-file" style="display:none;">
                     <div id="tcloud-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
                     <button class="btn primary" onclick="processTcloud()">Конвертировать</button>
                     <button class="btn" id="tcloud-download" style="display:none;" onclick="downloadTcloud()">Скачать SVG</button>
@@ -67,7 +86,7 @@
                         <p>Загрузите SVG-файл</p>
                          <small>Нажмите для выбора</small>
                     </div>
-                    <input type="file" id="q-file" accept=".svg" style="display:none;">
+                    <input type="file" id="q-file" style="display:none;">
                     <div id="q-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
                     <div class="input-group">
                         <label>Код с координатами (window.schemeConfig):</label>
@@ -84,7 +103,7 @@
                         <p>Загрузите SVG-файл</p>
                          <small>Нажмите для выбора</small>
                     </div>
-                    <input type="file" id="tland-file" accept=".svg" style="display:none;">
+                    <input type="file" id="tland-file" style="display:none;">
                     <div id="tland-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
                     
                     <button class="btn primary" onclick="processTland()">Конвертировать</button>
@@ -98,14 +117,14 @@
                         <p>Загрузите schema.svg</p>
                         <small>Нажмите для выбора</small>
                     </div>
-                    <input type="file" id="redk-svg-file" accept=".svg" style="display:none;">
+                    <input type="file" id="redk-svg-file" style="display:none;">
                     <div id="redk-svg-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
                     
                     <div class="file-upload" id="redk-json-dropzone">
                         <p>Загрузите schema.json</p>
                         <small>Нажмите для выбора</small>
                     </div>
-                    <input type="file" id="redk-json-file" accept=".json" style="display:none;">
+                    <input type="file" id="redk-json-file" style="display:none;">
                     <div id="redk-json-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
                     
                     <button class="btn primary" onclick="processRedk()">Конвертировать</button>
