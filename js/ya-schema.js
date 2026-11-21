@@ -1,146 +1,149 @@
-// Обработка Ya.Schema
+let yaSvgContent = '';
+
+function initYa() {
+    setupDropzone('ya-dropzone', 'ya-file', readYaFile);
+}
+
+function readYaFile(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        yaSvgContent = e.target.result;
+        const dropzone = document.getElementById('ya-dropzone');
+        dropzone.classList.add('active');
+        dropzone.querySelector('p').textContent = 'Файл загружен';
+        const fileName = document.getElementById('ya-file-name');
+        fileName.textContent = '✓ Загружен: ' + file.name;
+        fileName.style.display = 'block';
+    };
+    reader.onerror = () => setStatus('Ошибка чтения файла', true);
+    reader.readAsText(file);
+}
+
+function yaCleanGroupName(name) {
+    if (!name) return 'Без имени';
+    return name.replace(/[,&\-+()]/g, '').trim();
+}
+
+function yaBuildGroups(data) {
+    const groups = [];
+    if (!data.levels || !Array.isArray(data.levels)) return groups;
+    const r = seatR(5);
+
+    data.levels.forEach(level => {
+        const content = [];
+        const groupName = yaCleanGroupName(level.name);
+
+        if (level.outline) {
+            content.push('    <path id="Контур_1" d="' + esc(level.outline) + '" fill="none" stroke="#000000" stroke-width="1"/>');
+        }
+        if (level.sections) {
+            level.sections.forEach(section => {
+                if (section.outline) {
+                    content.push('    <path id="Контур_1" d="' + esc(section.outline) + '" fill="none" stroke="#000000" stroke-width="1"/>');
+                }
+            });
+        }
+        if (level.seats) {
+            level.seats.forEach(seat => {
+                if (seat.x_coord != null && seat.y_coord != null && seat.place != null) {
+                    const row = (seat.row != null && String(seat.row).trim() !== '') ? String(seat.row).trim() : '-';
+                    const placeId = fmtId(row, seat.place, false);
+                    content.push('    <circle id="' + esc(placeId) + '" cx="' + seat.x_coord + '" cy="' + seat.y_coord + '" r="' + r +
+                        '" fill="none" stroke="' + SEAT_STROKE + '" stroke-width="1" data-row="' + esc(row) + '" data-place="' + esc(seat.place) + '"/>');
+                }
+            });
+        }
+        if (content.length > 0) {
+            groups.push('  <g id="' + esc(groupName) + '">\n' + content.join('\n') + '\n  </g>');
+        }
+    });
+    return groups;
+}
+
+function yaMerge() {
+    const jsonText = document.getElementById('ya-json').value.trim();
+    if (!yaSvgContent) throw new Error('Загрузите файл с подложкой');
+    if (!jsonText) throw new Error('Вставьте JSON с местами');
+
+    parseSVG(yaSvgContent);
+
+    const parsed = extractJSON(jsonText);
+    let data = parsed;
+    if (parsed.result && typeof parsed.result === 'string') {
+        data = JSON.parse(parsed.result);
+    } else if (parsed.result && typeof parsed.result === 'object') {
+        data = parsed.result;
+    }
+    if (!data.levels) throw new Error('В JSON нет поля "levels"');
+
+    const groups = yaBuildGroups(data);
+    const end = yaSvgContent.lastIndexOf('</svg>');
+    if (end < 0) throw new Error('В файле подложки нет закрывающего </svg>');
+
+    const svg = yaSvgContent.slice(0, end)
+        + '\n  <g id="tables-from-json">\n' + groups.join('\n') + '\n  </g>\n</svg>';
+    return { svg, groupsCount: groups.length };
+}
+
 function processYa() {
     try {
-        const svgText = document.getElementById('ya-svg').value.trim();
-        const jsonText = document.getElementById('ya-json').value.trim();
-
-        if (!svgText || !jsonText) {
-            throw new Error('Заполните оба поля');
-        }
-
-        const svgParsed = extractJSON(svgText);
-        let svgContent = '';
-        if (svgParsed.result && typeof svgParsed.result === 'string') {
-            svgContent = svgParsed.result;
-        } else {
-            throw new Error('В первом поле нет SVG в поле result');
-        }
-
-        const jsonParsed = extractJSON(jsonText);
-        let jsonData = jsonParsed;
-        if (jsonParsed.result && typeof jsonParsed.result === 'string') {
-            jsonData = JSON.parse(jsonParsed.result);
-        } else if (jsonParsed.result && typeof jsonParsed.result === 'object') {
-            jsonData = jsonParsed.result;
-        }
-
-        if (!jsonData.levels) {
-            throw new Error('Во втором поле нет "levels"');
-        }
-
-        const result = buildGroupsFromLevels(jsonData, svgContent);
-        
-        // Поворот если нужно
+        const result = yaMerge();
         let finalSvg = result.svg;
         const shouldRotate = document.getElementById('ya-rotate').checked;
-        
-        if (shouldRotate) {
-            finalSvg = rotateSVG(finalSvg);
-        }
-        
-        showPreview(finalSvg);
-        
-        const rotateText = shouldRotate ? ' (развёрнуто на 180°)' : '';
-        setStatus(`✓ Объединено: ${result.groupsCount} групп${rotateText}`);
-        
-        document.getElementById('ya-download').style.display = 'block';
+        if (shouldRotate) finalSvg = rotateSVG(finalSvg);
 
+        showPreview(finalSvg);
+        setStatus('✓ Объединено: ' + result.groupsCount + ' групп' + (shouldRotate ? ' (развёрнуто на 180°)' : ''));
+        document.getElementById('ya-download').style.display = 'block';
     } catch (e) {
         handleError(e);
     }
 }
 
+// Переключатель поворота: пересобираем только если уже есть данные
+function yaRotateChanged() {
+    if (yaSvgContent && document.getElementById('ya-json').value.trim()) processYa();
+}
+
 function rotateSVG(svgString) {
     const doc = parseSVG(svgString);
     const svg = doc.documentElement;
-    
-    const viewBox = svg.getAttribute('viewBox');
+
+    const vb = parseViewBox(svg.getAttribute('viewBox'));
     let cx, cy;
-    
-    if (viewBox) {
-        const parts = viewBox.split(/\s+/).map(Number);
-        cx = parts[0] + parts[2] / 2;
-        cy = parts[1] + parts[3] / 2;
+    if (vb) {
+        cx = vb[0] + vb[2] / 2;
+        cy = vb[1] + vb[3] / 2;
     } else {
-        const width = parseFloat(svg.getAttribute('width')) || 1000;
-        const height = parseFloat(svg.getAttribute('height')) || 1000;
-        cx = width / 2;
-        cy = height / 2;
+        cx = (parseFloat(svg.getAttribute('width')) || 1000) / 2;
+        cy = (parseFloat(svg.getAttribute('height')) || 1000) / 2;
     }
-    
-    const existingContent = document.createDocumentFragment();
-    while (svg.firstChild) {
-        existingContent.appendChild(svg.firstChild);
-    }
-    
-    const transformGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    transformGroup.setAttribute('transform', `rotate(180, ${cx}, ${cy})`);
-    transformGroup.appendChild(existingContent);
-    svg.appendChild(transformGroup);
-    
+
+    const content = document.createDocumentFragment();
+    while (svg.firstChild) content.appendChild(svg.firstChild);
+
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('transform', `rotate(180, ${cx}, ${cy})`);
+    g.appendChild(content);
+    svg.appendChild(g);
+
     return serializeSVG(doc);
-}
-function buildGroupsFromLevels(data, svgContent) {
-    let groups = [];
-
-    function cleanGroupName(name) {
-        if (!name) return 'Без имени';
-        return name.replace(/[,&\-+()]/g, '').trim();
-    }
-
-    function formatPlaceName(row, place) {
-        let rowValue = (row && row.trim() !== '') ? row : '-';
-        return 'Ряд_' + rowValue + '|' + place + '-' + place;
-    }
-
-    if (data.levels && Array.isArray(data.levels)) {
-        data.levels.forEach(level => {
-            let groupContent = [];
-            let groupName = cleanGroupName(level.name);
-
-            if (level.outline) {
-                groupContent.push(`    <path id="Контур_1" d="${level.outline}" fill="none" stroke="#000000" stroke-width="1"/>`);
-            }
-
-            if (level.sections) {
-                level.sections.forEach(section => {
-                    if (section.outline) {
-                        groupContent.push(`    <path id="Контур_1" d="${section.outline}" fill="none" stroke="#000000" stroke-width="1"/>`);
-                    }
-                });
-            }
-
-            if (level.seats) {
-                level.seats.forEach(seat => {
-                    if (seat.x_coord && seat.y_coord && seat.place) {
-                        const placeId = formatPlaceName(seat.row, seat.place);
-                        groupContent.push(`    <circle id="${placeId}" cx="${seat.x_coord}" cy="${seat.y_coord}" r="5" fill="none" stroke="#AEAEAE" stroke-width="1" data-row="${seat.row || '-'}" data-place="${seat.place}"/>`);
-                    }
-                });
-            }
-
-            if (groupContent.length > 0) {
-                groups.push(`  <g id="${groupName}">\n${groupContent.join('\n')}\n  </g>`);
-            }
-        });
-    }
-
-    let baseSVG = svgContent.replace(/<\/svg>\s*$/, '');
-    let result = baseSVG + '\n  <g id="tables-from-json">\n' + groups.join('\n') + '\n  </g>\n</svg>';
-
-    return {
-        svg: result,
-        groupsCount: groups.length
-    };
 }
 
 function downloadYa() {
-    downloadCurrentResult('ya-schema-merged.svg');
+    downloadCurrentResult('ya-schema2-merged.svg');
 }
 
 function clearYa() {
-    document.getElementById('ya-svg').value = '';
+    yaSvgContent = '';
     document.getElementById('ya-json').value = '';
+    document.getElementById('ya-file').value = '';
     document.getElementById('ya-rotate').checked = false;
+    const dropzone = document.getElementById('ya-dropzone');
+    dropzone.classList.remove('active');
+    dropzone.querySelector('p').textContent = 'Перетащите файл с подложкой сюда';
+    document.getElementById('ya-file-name').style.display = 'none';
     clearResult();
 }
+
+document.addEventListener('DOMContentLoaded', initYa);
