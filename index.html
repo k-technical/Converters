@@ -113,15 +113,28 @@
 
                 <!-- Панель Q.Schema -->
                 <div class="tab-panel" id="panel-q" style="display:none;">
+                    <div class="input-group">
+                        <label>Автозагрузка по ссылке на страницу события:</label>
+                        <input type="text" id="q-link" placeholder="Ссылка на страницу события (https://...)">
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn" onclick="qOpenWidget()">Открыть и забрать данные</button>
+                            <button class="btn" onclick="qPasteBundle()">Вставить из буфера</button>
+                        </div>
+                        <div class="hint">Нужен скрипт-помощник userscripts/widget-grabber.user.js. Без него загрузите файлы вручную ниже.</div>
+                    </div>
                     <div class="file-upload" id="q-dropzone">
-                        <p>Загрузите SVG-файл</p>
-                         <small>Нажмите для выбора</small>
+                        <p>Перетащите сюда SVG-подложку и файл с кодом</p>
+                        <small>можно оба сразу, любой формат; или вставьте код ниже</small>
                     </div>
                     <input type="file" id="q-file" style="display:none;">
                     <div id="q-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
                     <div class="input-group">
                         <label>Код с координатами (window.schemeConfig):</label>
                         <textarea id="q-code" placeholder="Вставьте код из файла со схемой..."></textarea>
+                    </div>
+                    <div class="option">
+                        <input type="checkbox" id="q-group" checked>
+                        <label for="q-group">Группировать места по зонам</label>
                     </div>
                     <button class="btn primary" onclick="processQ()">Конвертировать</button>
                     <button class="btn" id="q-download" style="display:none;" onclick="downloadQ()">Скачать SVG</button>
