@@ -1,40 +1,7 @@
-// T-Land Schema - группировка мест по секторам
 let tlandSvgContent = '';
 
 function initTland() {
-    const dropzone = document.getElementById('tland-dropzone');
-    const fileInput = document.getElementById('tland-file');
-
-    dropzone.addEventListener('click', () => fileInput.click());
-
-    dropzone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropzone.style.borderColor = '#58a6ff';
-        dropzone.style.background = 'rgba(88, 166, 255, 0.1)';
-    });
-
-    dropzone.addEventListener('dragleave', () => {
-        dropzone.style.borderColor = '#30363d';
-        dropzone.style.background = '#161b22';
-    });
-
-    dropzone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropzone.style.borderColor = '#30363d';
-        dropzone.style.background = '#161b22';
-        
-        const file = e.dataTransfer.files[0];
-        if (file && (file.type === 'image/svg+xml' || file.name.toLowerCase().endsWith('.svg'))) {
-            readTlandFile(file);
-        } else {
-            setStatus('Пожалуйста, загрузите SVG файл', true);
-        }
-    });
-
-    fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) readTlandFile(file);
-    });
+    setupDropzone('tland-dropzone', 'tland-file', readTlandFile);
 }
 
 function readTlandFile(file) {
@@ -107,9 +74,19 @@ function processTlandSVG(svgText) {
     const sectorGroups = new Map();
     const processedElements = [];
 
-    elements.forEach(el => {
+    // Живая копия для измерения path через getBBox
+    let liveEls = null;
+    try {
+        const host = hiddenHost();
+        host.innerHTML = svgText;
+        liveEls = host.querySelectorAll('[section][seat]');
+    } catch (e) { liveEls = null; }
+    let missingRow = 0;
+
+    elements.forEach((el, idx) => {
         const section = el.getAttribute('section');
         const seat = el.getAttribute('seat');
+        if (!el.getAttribute('row')) missingRow++;
         const row = el.getAttribute('row') || '1';
         const elId = el.getAttribute('id') || `place_${seat || 'unknown'}`;
 
@@ -146,6 +123,17 @@ function processTlandSVG(svgText) {
             // Пробуем найти радиус из атрибута r или data-radius
             radius = parseFloat(el.getAttribute('r') || el.getAttribute('data-radius') || 0);
             if (isNaN(radius) || radius <= 0) radius = 5;
+            // Нет cx/cy: берём центр и размер из getBBox
+            if (!el.hasAttribute('cx') && liveEls && liveEls[idx] && liveEls[idx].getBBox) {
+                try {
+                    const bb = liveEls[idx].getBBox();
+                    if (bb.width > 0 || bb.height > 0) {
+                        cx = bb.x + bb.width / 2;
+                        cy = bb.y + bb.height / 2;
+                        if (!el.getAttribute('r')) radius = Math.min(bb.width, bb.height) / 2 || 5;
+                    }
+                } catch (e) { /* оставляем значения по умолчанию */ }
+            }
         } else {
             // Другие элементы: пытаемся найти координаты
             cx = parseFloat(el.getAttribute('cx') || el.getAttribute('x') || 0);
@@ -164,7 +152,7 @@ function processTlandSVG(svgText) {
         
         circle.setAttribute('cx', cx);
         circle.setAttribute('cy', cy);
-        circle.setAttribute('r', radius);
+        circle.setAttribute('r', seatR(radius));
         circle.setAttribute('fill', 'none');
         circle.setAttribute('stroke', '#AEAEAE');
         circle.setAttribute('stroke-width', '1');
@@ -186,6 +174,10 @@ function processTlandSVG(svgText) {
         sectorGroups.get(section).push(circle);
         processedElements.push(el);
     });
+
+    const lh = document.getElementById('__hidden_host');
+    if (lh) lh.remove();
+    if (missingRow > 0) addWarn('У ' + missingRow + ' мест нет атрибута row (подставлен ряд 1)');
 
     // Удаляем старые элементы
     processedElements.forEach(el => {
