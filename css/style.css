@@ -420,7 +420,10 @@ textarea:focus {
 #tland-download,
 #redk-download,
 #rado-download,
-#afisha-download {
+#afisha-download,
+#inti-download,
+#afilist-download,
+#epol-download {
     display: none;
 }
 
@@ -431,7 +434,10 @@ textarea:focus {
 #panel-tland .btn,
 #panel-redk .btn,
 #panel-rado .btn,
-#panel-afisha .btn {
+#panel-afisha .btn,
+#panel-inti .btn,
+#panel-afilist .btn,
+#panel-epol .btn {
     margin: 0;
 }
 
@@ -477,3 +483,12 @@ textarea:focus {
 .options-bar label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #8b949e; }
 .options-bar select, .options-bar input { padding: 6px 10px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 13px; }
 .options-bar input { width: 130px; }
+
+/* Панели Inti-IF */
+.hint { font-size: 12px; color: #8b949e; }
+.code { display: flex; gap: 8px; align-items: stretch; }
+.code code { flex: 1; padding: 10px; background: #161b22; border: 1px solid #30363d; border-radius: 8px; font: 12px 'Cascadia Code', 'Fira Code', monospace; word-break: break-all; color: #c9d1d9; }
+.code .btn { width: auto; white-space: nowrap; padding: 0 14px; }
+.params { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 14px; }
+.params > label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #8b949e; }
+.params select, .params input[type="text"] { width: 100%; padding: 8px 10px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 13px; }
