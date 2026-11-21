@@ -47,18 +47,34 @@ function setStatus(message, isError = false) {
     status.className = isError ? 'stats error active' : 'stats active';
 }
 
-// Повторяющиеся id (кроме служебных Контур_*, Подложка*)
+// Повторяющиеся id внутри одной группы (одинаковые id в разных секторах - нормально)
 function findDuplicateIds(svg) {
-    const seen = new Set();
-    let dup = 0;
-    const re = /\sid="([^"]*)"/g;
-    let m;
-    while ((m = re.exec(svg)) !== null) {
-        const id = m[1];
-        if (/^(Контур|Подложка|Буквы)/.test(id)) continue;
-        if (seen.has(id)) dup++; else seen.add(id);
+    const skip = /^(Контур|Подложка|Буквы)/;
+    try {
+        const doc = new DOMParser().parseFromString(svg, 'image/svg+xml');
+        if (doc.querySelector('parsererror')) throw new Error('parse');
+        const seen = new Set();
+        let dup = 0;
+        doc.querySelectorAll('[id]').forEach(el => {
+            const id = el.getAttribute('id');
+            if (skip.test(id)) return;
+            const p = el.parentNode;
+            const scope = p && p.getAttribute ? (p.getAttribute('id') || '') : '';
+            const key = scope + '\u0001' + id;
+            if (seen.has(key)) dup++; else seen.add(key);
+        });
+        return dup;
+    } catch (e) {
+        const seen = new Set();
+        let dup = 0;
+        const re = /\sid="([^"]*)"/g;
+        let m;
+        while ((m = re.exec(svg)) !== null) {
+            if (skip.test(m[1])) continue;
+            if (seen.has(m[1])) dup++; else seen.add(m[1]);
+        }
+        return dup;
     }
-    return dup;
 }
 
 // Для превью убираем скрипты и обработчики (скачиваемый файл не меняется)
@@ -80,7 +96,7 @@ function showPreview(svgContent) {
     container.innerHTML = sanitizeForPreview(svgContent);
     currentSvgResult = svgContent;
     const dup = findDuplicateIds(svgContent);
-    if (dup > 0) addWarn('Повторяющихся id: ' + dup + ' (проверьте перед загрузкой)');
+    if (dup > 0) addWarn('Повторяющихся id внутри групп: ' + dup);
 }
 
 // Скачивание текущего результата
