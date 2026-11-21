@@ -21,14 +21,55 @@ async function readYaFiles(files) {
         }
     }
     if (!names.length) return;
+    yaMarkLoaded(names);
+    // Есть оба файла: сразу конвертируем
+    if (yaSvgContent && document.getElementById('ya-json').value.trim()) processYa();
+}
+
+function yaMarkLoaded(names) {
     const dz = document.getElementById('ya-dropzone');
     dz.classList.add('active');
     dz.querySelector('p').textContent = 'Файлы загружены';
     const label = document.getElementById('ya-file-name');
     label.textContent = '✓ ' + names.join(' | ');
     label.style.display = 'block';
-    // Есть оба файла: сразу конвертируем
-    if (yaSvgContent && document.getElementById('ya-json').value.trim()) processYa();
+}
+
+// ---- Автозагрузка по ссылке на виджет (нужен скрипт-помощник на странице виджета) ----
+let yaWin = null;
+
+function yaOpenWidget() {
+    const url = document.getElementById('ya-link').value.trim();
+    if (!/^https:\/\//i.test(url)) { setStatus('Вставьте ссылку на виджет (начинается с https://)', true); return; }
+    yaWin = window.open(url, '_blank');
+    if (!yaWin) { setStatus('Браузер заблокировал окно: разрешите всплывающие окна для этой страницы', true); return; }
+    setStatus('Жду данные от виджета… (на странице виджета должен работать скрипт-помощник)');
+}
+
+function yaApplyBundle(d) {
+    if (!d || typeof d.json !== 'string' || typeof d.svg !== 'string') { setStatus('Неверный формат данных от помощника', true); return; }
+    document.getElementById('ya-json').value = d.json;
+    yaSvgContent = d.svg;
+    yaMarkLoaded(['JSON: из виджета', 'подложка: из виджета']);
+    processYa();
+}
+
+window.addEventListener('message', (e) => {
+    const d = e.data;
+    if (!d || d.type !== 'ya-schema-files') return;
+    if (!yaWin || e.source !== yaWin) return; // только от окна, открытого кнопкой
+    yaApplyBundle(d);
+    try { yaWin.close(); } catch (err) { /* окно можно закрыть вручную */ }
+});
+
+async function yaPasteBundle() {
+    try {
+        const d = JSON.parse(await navigator.clipboard.readText());
+        if (d.type !== 'ya-schema-files') throw new Error('not bundle');
+        yaApplyBundle(d);
+    } catch (e) {
+        setStatus('В буфере нет данных от помощника (нажмите «Копировать для конвертера» на странице виджета)', true);
+    }
 }
 
 function yaCleanGroupName(name) {
@@ -181,6 +222,8 @@ function clearYa() {
     yaSvgContent = '';
     document.getElementById('ya-json').value = '';
     document.getElementById('ya-file').value = '';
+    document.getElementById('ya-link').value = '';
+    yaWin = null;
     yaStats = [];
     document.getElementById('ya-rotate').checked = false;
     const dropzone = document.getElementById('ya-dropzone');
