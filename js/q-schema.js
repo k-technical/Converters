@@ -1,37 +1,7 @@
 let qSvgContent = '';
 
 function initQ() {
-    const dropzone = document.getElementById('q-dropzone');
-    const fileInput = document.getElementById('q-file');
-
-    dropzone.addEventListener('click', () => fileInput.click());
-
-    dropzone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropzone.style.borderColor = '#58a6ff';
-        dropzone.style.background = 'rgba(88, 166, 255, 0.1)';
-    });
-
-    dropzone.addEventListener('dragleave', () => {
-        dropzone.style.borderColor = '#30363d';
-        dropzone.style.background = '#161b22';
-    });
-
-    dropzone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropzone.style.borderColor = '#30363d';
-        dropzone.style.background = '#161b22';
-        
-        const file = e.dataTransfer.files[0];
-        if (file && file.name.endsWith('.svg')) {
-            readQFile(file);
-        }
-    });
-
-    fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) readQFile(file);
-    });
+    setupDropzone('q-dropzone', 'q-file', readQFile);
 }
 
 function readQFile(file) {
@@ -49,7 +19,7 @@ function readQFile(file) {
     reader.readAsText(file);
 }
 
-function extractSeatsFromCode(code) {
+function extractSeatsFromCode(code, maxCoord = 2000) {
     const seats = [];
     const lines = code.split('\n');
     
@@ -66,7 +36,7 @@ function extractSeatsFromCode(code) {
                 const x = numbers[i];
                 const y = numbers[i + 1];
                 
-                if (x > 30 && x < 2000 && y > 30 && y < 2000) {
+                if (x > 30 && x < maxCoord && y > 30 && y < maxCoord) {
                     
                     const otherNumbersWithIndex = [];
                     for (let idx = 0; idx < numbers.length; idx++) {
@@ -139,7 +109,10 @@ function processQ() {
             throw new Error('Вставьте код с координатами');
         }
 
-        const seats = extractSeatsFromCode(code);
+        const vbm = qSvgContent.match(/viewBox\s*=\s*"([^"]*)"/i);
+        const vb = vbm ? parseViewBox(vbm[1]) : null;
+        const maxCoord = vb ? Math.max(2000, vb[2], vb[3]) : 2000;
+        const seats = extractSeatsFromCode(code, maxCoord);
 
         const svgDoc = parseSVG(qSvgContent);
         const svg = svgDoc.documentElement;
@@ -153,7 +126,7 @@ function processQ() {
            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
 circle.setAttribute('cx', seat.x);
 circle.setAttribute('cy', seat.y);
-circle.setAttribute('r', '6');
+circle.setAttribute('r', String(seatR(6)));
 circle.setAttribute('fill', 'none');
 circle.setAttribute('stroke', '#AEAEAE');
 circle.setAttribute('stroke-width', '1');
