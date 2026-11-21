@@ -1,40 +1,7 @@
-// T-cloud Schema - очистка схемы от TicketService
 let tcloudSvgContent = '';
 
 function initTcloud() {
-    const dropzone = document.getElementById('tcloud-dropzone');
-    const fileInput = document.getElementById('tcloud-file');
-
-    dropzone.addEventListener('click', () => fileInput.click());
-
-    dropzone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropzone.style.borderColor = '#58a6ff';
-        dropzone.style.background = 'rgba(88, 166, 255, 0.1)';
-    });
-
-    dropzone.addEventListener('dragleave', () => {
-        dropzone.style.borderColor = '#30363d';
-        dropzone.style.background = '#161b22';
-    });
-
-    dropzone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropzone.style.borderColor = '#30363d';
-        dropzone.style.background = '#161b22';
-        
-        const file = e.dataTransfer.files[0];
-        if (file && file.name.endsWith('.svg')) {
-            readTcloudFile(file);
-        } else {
-            setStatus('Пожалуйста, выберите SVG файл', true);
-        }
-    });
-
-    fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) readTcloudFile(file);
-    });
+    setupDropzone('tcloud-dropzone', 'tcloud-file', readTcloudFile);
 }
 
 function readTcloudFile(file) {
