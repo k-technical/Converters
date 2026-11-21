@@ -6,8 +6,9 @@
 // @match        https://*.qtickets.ru/*
 // @run-at       document-idle
 // ==/UserScript==
-// Замените ДОМЕН-ВИДЖЕТА-1 и ДОМЕН-ВИДЖЕТА-2 на домены из ваших ссылок на виджеты (формат https://домен/*).
-// Если домен один, вторую строку @match удалите.
+// Замените домены на адреса из ваших ссылок (формат https://домен/*).
+// Для третьей строки используйте шаблон с поддоменами: https://*.домен/* (подходит для любых поддоменов).
+// Ненужные строки @match удалите.
 (function () {
     if (window.top !== window.self) return;
     const RE = /PUBLIC-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/;
@@ -71,7 +72,25 @@
             if (json && svg) { send({ type: 'ya-schema-files', json: json, svg: svg }); return true; }
         }
 
-        // 2) T-cloud: один SVG со схемой (есть атрибуты tc-row-no)
+        // 2) Q.Schema: файл *_public.js с кодом схемы + SVG подложка
+        let code = '';
+        const jsUrl = urls.find(u => /_public\.js(\?|#|$)/i.test(u));
+        if (jsUrl) code = await load(jsUrl);
+        if (!/schemeConfig/.test(code)) {
+            // код может быть встроен в страницу
+            const inline = Array.from(document.scripts).map(s => s.textContent || '').find(t => /window\.schemeConfig\s*=/.test(t));
+            code = inline || '';
+        }
+        if (/schemeConfig/.test(code)) {
+            const im = code.match(/"image"\s*:\s*"([^"]+\.svg[^"]*)"/);
+            const imgUrl = urls.find(u => /scheme[^/]*\.svg(\?|#|$)/i.test(u)) || (im ? im[1].replace(/\\\//g, '/') : '');
+            if (imgUrl) {
+                const svg = await load(imgUrl);
+                if (/<svg[\s>]/i.test(svg.slice(0, 2000))) { send({ type: 'q-files', js: code, svg: svg }); return true; }
+            }
+        }
+
+        // 3) T-cloud: один SVG со схемой (есть атрибуты tc-row-no)
         const svgs = urls.filter(u => /\.svg(\?|#|$)/i.test(u)).slice(0, 40);
         for (const u of svgs) {
             const t = await load(u);
