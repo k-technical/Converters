@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         widget-grabber
 // @description  Забирает данные схемы со страницы виджета и отдаёт их конвертеру (Ya.Schema 2 Public и T-cloud)
-// @match        https://ДОМЕН-ВИДЖЕТА-1/*
-// @match        https://ДОМЕН-ВИДЖЕТА-2/*
+// @match        https://widget.afisha.yandex.ru/*
+// @match        https://ticketscloud.com/*
 // @run-at       document-idle
 // ==/UserScript==
 // Замените ДОМЕН-ВИДЖЕТА-1 и ДОМЕН-ВИДЖЕТА-2 на домены из ваших ссылок на виджеты (формат https://домен/*).
