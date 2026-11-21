@@ -1,22 +1,102 @@
 let qSvgContent = '';
 
 function initQ() {
-    setupDropzone('q-dropzone', 'q-file', readQFile);
+    setupDropzone('q-dropzone', 'q-file', readQFiles, true);
 }
 
-function readQFile(file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        qSvgContent = e.target.result;
-        const dropzone = document.getElementById('q-dropzone');
-        dropzone.classList.add('active');
-        dropzone.querySelector('p').textContent = `Файл: ${file.name}`;
-        
-        const fileName = document.getElementById('q-file-name');
-        fileName.textContent = `✓ Загружен: ${file.name}`;
-        fileName.style.display = 'block';
-    };
-    reader.readAsText(file);
+// Принимает один или два файла: SVG-подложка и JS-код определяются по содержимому
+async function readQFiles(files) {
+    const names = [];
+    for (const file of files) {
+        const text = await file.text();
+        const t = text.replace(/^\uFEFF/, '');
+        if (/<svg[\s>]/i.test(t.slice(0, 2000))) {
+            qSvgContent = t;
+            names.push('подложка: ' + file.name);
+        } else if (/schemeConfig|var\s+seats\s*=/.test(t)) {
+            document.getElementById('q-code').value = t;
+            names.push('код: ' + file.name);
+        } else {
+            setStatus('Не удалось определить файл «' + file.name + '» (нужен SVG или JS с кодом схемы)', true);
+        }
+    }
+    if (!names.length) return;
+    qMarkLoaded(names);
+    if (qSvgContent && document.getElementById('q-code').value.trim()) processQ();
+}
+
+function qMarkLoaded(names) {
+    const dropzone = document.getElementById('q-dropzone');
+    dropzone.classList.add('active');
+    dropzone.querySelector('p').textContent = 'Файлы загружены';
+    const label = document.getElementById('q-file-name');
+    label.textContent = '✓ ' + names.join(' | ');
+    label.style.display = 'block';
+}
+
+// ---- Точный разбор кода: блоки (function(cfg){var a=...;var seats=[[...]];var keys=[...] ----
+function qExtractConfig(code) {
+    const marker = 'window.schemeConfig=';
+    const i = code.indexOf(marker);
+    if (i < 0) return null;
+    let p = i + marker.length;
+    if (code[p] !== '{') return null;
+    let depth = 0, inStr = false, esc = false;
+    for (let j = p; j < code.length; j++) {
+        const ch = code[j];
+        if (inStr) {
+            if (esc) esc = false;
+            else if (ch === '\\') esc = true;
+            else if (ch === '"') inStr = false;
+        } else if (ch === '"') inStr = true;
+        else if (ch === '{') depth++;
+        else if (ch === '}' && --depth === 0) {
+            try { return JSON.parse(code.slice(p, j + 1)); } catch (e) { return null; }
+        }
+    }
+    return null;
+}
+
+function qParseStructured(code) {
+    const blocks = code.split(/\(function\(cfg\)\{/).slice(1);
+    const seats = [];
+    blocks.forEach(b => {
+        const sIdx = b.indexOf('var seats=');
+        const kIdx = b.indexOf('var keys=');
+        if (sIdx < 0 || kIdx < 0) return;
+        try {
+            // Переменные a, b, c... из начала блока
+            const vars = {};
+            const headBody = b.slice(0, sIdx).replace(/^\s*var\s+/, '');
+            const re = /([A-Za-z_$][\w$]*)\s*=\s*("(?:[^"\\]|\\.)*"|-?\d+(?:\.\d+)?|null|true|false)/g;
+            let m;
+            while ((m = re.exec(headBody)) !== null) vars[m[1]] = JSON.parse(m[2]);
+
+            const arrEnd = b.indexOf(';var keys=', sIdx);
+            const arrText = b.slice(sIdx + 'var seats='.length, arrEnd);
+            const resolved = arrText.replace(/"(?:[^"\\]|\\.)*"|[A-Za-z_$][\w$]*/g, tok => {
+                if (tok[0] === '"' || tok === 'null' || tok === 'true' || tok === 'false') return tok;
+                return tok in vars ? JSON.stringify(vars[tok]) : 'null';
+            });
+            const rows = JSON.parse(resolved);
+            const keys = JSON.parse(b.slice(kIdx + 'var keys='.length, b.indexOf(']', kIdx) + 1));
+            rows.forEach(r => {
+                const o = {};
+                keys.forEach((k, idx) => { o[k] = r[idx]; });
+                if (typeof o.x === 'number' && typeof o.y === 'number' && o.place != null) {
+                    seats.push({
+                        row: o.row != null ? String(o.row) : '0',
+                        place: String(o.place),
+                        x: o.x,
+                        y: o.y,
+                        zone: o.zone_id || '',
+                        admission: !!o.admission
+                    });
+                }
+            });
+        } catch (e) { /* блок нестандартный: пропускаем */ }
+    });
+    return seats;
 }
 
 function extractSeatsFromCode(code, maxCoord = 2000) {
@@ -98,6 +178,16 @@ function extractSeatsFromCode(code, maxCoord = 2000) {
     return unique;
 }
 
+function qDedupe(seats) {
+    const seen = new Set();
+    return seats.filter(s => {
+        const key = s.x + ',' + s.y;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+}
+
 function processQ() {
     try {
         if (!qSvgContent) {
@@ -112,39 +202,126 @@ function processQ() {
         const vbm = qSvgContent.match(/viewBox\s*=\s*"([^"]*)"/i);
         const vb = vbm ? parseViewBox(vbm[1]) : null;
         const maxCoord = vb ? Math.max(2000, vb[2], vb[3]) : 2000;
-        const seats = extractSeatsFromCode(code, maxCoord);
+
+        // Точный разбор; если формат кода другой, запасной эвристический
+        const cfg = qExtractConfig(code);
+        const screen = cfg && cfg.screens && (cfg.screens.default || Object.values(cfg.screens)[0]);
+        let seats = qDedupe(qParseStructured(code));
+        let exact = true;
+        if (!seats.length) {
+            seats = extractSeatsFromCode(code, maxCoord);
+            exact = false;
+        }
+        if (!seats.length) throw new Error('В коде не найдены места');
+
+        const zoneNames = {};
+        if (screen && screen.zones) Object.keys(screen.zones).forEach(k => { zoneNames[k] = screen.zones[k].name || k; });
+        const cfgRadius = screen && screen.states && screen.states.default && parseFloat(screen.states.default.radius);
+        const r = seatR(cfgRadius > 0 ? cfgRadius : 6);
+
+        // Места за пределами подложки: скорее всего подложка от другой схемы
+        let box = vb;
+        if (!box) {
+            const rt = (qSvgContent.match(/<svg[^>]*>/i) || [''])[0];
+            const wm = rt.match(/\swidth\s*=\s*"([\d.]+)/i), hm = rt.match(/\sheight\s*=\s*"([\d.]+)/i);
+            if (wm && hm) box = [0, 0, parseFloat(wm[1]), parseFloat(hm[1])];
+        }
+        if (box) {
+            const outside = seats.filter(s => s.x < box[0] || s.y < box[1] || s.x > box[0] + box[2] || s.y > box[1] + box[3]).length;
+            if (outside > 0) addWarn(outside + ' мест за пределами подложки (проверьте, что подложка от этой схемы)');
+        }
+        if (!exact) addWarn('Формат кода нестандартный: места найдены приблизительно, проверьте ряды и номера');
 
         const svgDoc = parseSVG(qSvgContent);
         const svg = svgDoc.documentElement;
+        const NS = 'http://www.w3.org/2000/svg';
+        const grouped = document.getElementById('q-group').checked && exact;
+        const existingIds = new Set(Array.from(svgDoc.querySelectorAll('[id]')).map(e => e.getAttribute('id')));
 
-        const seatsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        seatsGroup.setAttribute('id', 'seats-overlay');
+        const makeCircle = (seat) => {
+            const circle = document.createElementNS(NS, 'circle');
+            circle.setAttribute('cx', seat.x);
+            circle.setAttribute('cy', seat.y);
+            circle.setAttribute('r', String(r));
+            circle.setAttribute('fill', 'none');
+            circle.setAttribute('stroke', SEAT_STROKE);
+            circle.setAttribute('stroke-width', '1');
+            circle.setAttribute('id', formatSeatId(seat.row, seat.place));
+            return circle;
+        };
 
-        seats.forEach(seat => {
-            const seatId = formatSeatId(seat.row, seat.place);
-
-           const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-circle.setAttribute('cx', seat.x);
-circle.setAttribute('cy', seat.y);
-circle.setAttribute('r', String(seatR(6)));
-circle.setAttribute('fill', 'none');
-circle.setAttribute('stroke', '#AEAEAE');
-circle.setAttribute('stroke-width', '1');
-circle.setAttribute('id', seatId);
-seatsGroup.appendChild(circle);
-        });
-
-        svg.appendChild(seatsGroup);
+        const stats = {};
+        if (grouped) {
+            const groups = new Map();
+            seats.forEach(seat => {
+                const key = seat.zone || 'seats';
+                if (!groups.has(key)) {
+                    const g = document.createElementNS(NS, 'g');
+                    // Если в подложке уже есть элемент с таким id, добавляем суффикс
+                    let gid = zoneNames[key] || key;
+                    if (existingIds.has(gid)) gid += ' места';
+                    existingIds.add(gid);
+                    g.setAttribute('id', gid);
+                    groups.set(key, g);
+                    svg.appendChild(g);
+                }
+                groups.get(key).appendChild(makeCircle(seat));
+                stats[zoneNames[key] || key] = (stats[zoneNames[key] || key] || 0) + 1;
+            });
+        } else {
+            const seatsGroup = document.createElementNS(NS, 'g');
+            seatsGroup.setAttribute('id', 'seats-overlay');
+            seats.forEach(seat => seatsGroup.appendChild(makeCircle(seat)));
+            svg.appendChild(seatsGroup);
+        }
 
         const finalSVG = serializeSVG(svgDoc);
-        
+        const details = Object.keys(stats).map(n => n + ' (' + stats[n] + ')').join(', ');
+
         showPreview(finalSVG);
-        setStatus(`✓ Создано: ${seats.length} мест`);
-        
+        setStatus(`✓ Создано: ${seats.length} мест` + (details ? '\n📊 ' + details : ''));
+
         document.getElementById('q-download').style.display = 'block';
 
     } catch (e) {
         handleError(e);
+    }
+}
+
+// ---- Автозагрузка по ссылке на виджет (нужен скрипт-помощник на странице виджета) ----
+let qWin = null;
+
+function qOpenWidget() {
+    const url = document.getElementById('q-link').value.trim();
+    if (!/^https:\/\//i.test(url)) { setStatus('Вставьте ссылку на страницу события (начинается с https://)', true); return; }
+    qWin = window.open(url, '_blank');
+    if (!qWin) { setStatus('Браузер заблокировал окно: разрешите всплывающие окна для этой страницы', true); return; }
+    setStatus('Жду данные от страницы… (на ней должен работать скрипт-помощник)');
+}
+
+function qApplyBundle(d) {
+    if (!d || typeof d.js !== 'string' || typeof d.svg !== 'string') { setStatus('Неверный формат данных от помощника', true); return; }
+    document.getElementById('q-code').value = d.js;
+    qSvgContent = d.svg;
+    qMarkLoaded(['код: со страницы', 'подложка: со страницы']);
+    processQ();
+}
+
+window.addEventListener('message', (e) => {
+    const d = e.data;
+    if (!d || d.type !== 'q-files') return;
+    if (!qWin || e.source !== qWin) return; // только от окна, открытого кнопкой
+    qApplyBundle(d);
+    try { qWin.close(); } catch (err) { /* окно можно закрыть вручную */ }
+});
+
+async function qPasteBundle() {
+    try {
+        const d = JSON.parse(await navigator.clipboard.readText());
+        if (d.type !== 'q-files') throw new Error('not bundle');
+        qApplyBundle(d);
+    } catch (e) {
+        setStatus('В буфере нет данных от помощника (нажмите «Копировать для конвертера» на странице)', true);
     }
 }
 
@@ -155,10 +332,12 @@ function downloadQ() {
 function clearQ() {
     document.getElementById('q-code').value = '';
     document.getElementById('q-file').value = '';
+    document.getElementById('q-link').value = '';
+    qWin = null;
     qSvgContent = '';
     const dropzone = document.getElementById('q-dropzone');
     dropzone.classList.remove('active');
-    dropzone.querySelector('p').textContent = 'Загрузите SVG-схему';
+    dropzone.querySelector('p').textContent = 'Перетащите сюда SVG-подложку и файл с кодом';
     document.getElementById('q-file-name').style.display = 'none';
     clearResult();
 }
