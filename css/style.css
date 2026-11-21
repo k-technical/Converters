@@ -469,3 +469,11 @@ textarea:focus {
     height: auto;
     max-height: 100%;
 }
+
+
+/* Общие настройки и многострочный статус */
+.stats { white-space: pre-line; }
+.options-bar { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 16px; padding: 12px 16px; background: #161b22; border: 1px solid #30363d; border-radius: 8px; }
+.options-bar label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #8b949e; }
+.options-bar select, .options-bar input { padding: 6px 10px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 13px; }
+.options-bar input { width: 130px; }
