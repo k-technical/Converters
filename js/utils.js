@@ -69,11 +69,16 @@ function hiddenHost() {
 }
 
 // Единая зона загрузки: принимает файл любого формата (в т.ч. без расширения)
-function setupDropzone(zoneId, inputId, onFile) {
+function setupDropzone(zoneId, inputId, onFile, multi) {
     const zone = document.getElementById(zoneId);
     const input = document.getElementById(inputId);
     if (!zone || !input) return;
     input.removeAttribute('accept');
+    if (multi) input.multiple = true;
+    const pick = (files) => {
+        if (!files || !files.length) return;
+        if (multi) onFile(Array.from(files)); else onFile(files[0]);
+    };
     zone.addEventListener('click', () => input.click());
     zone.addEventListener('dragover', (e) => {
         e.preventDefault();
@@ -88,12 +93,10 @@ function setupDropzone(zoneId, inputId, onFile) {
         e.preventDefault();
         zone.style.borderColor = '#30363d';
         zone.style.background = '#161b22';
-        const file = e.dataTransfer.files[0];
-        if (file) onFile(file);
+        pick(e.dataTransfer.files);
     });
     input.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) onFile(file);
+        pick(e.target.files);
     });
 }
 
