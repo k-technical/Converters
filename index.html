@@ -55,7 +55,7 @@
                             <button class="btn" onclick="yaOpenWidget()">Открыть и забрать данные</button>
                             <button class="btn" onclick="yaPasteBundle()">Вставить из буфера</button>
                         </div>
-                        <div class="hint">Нужен скрипт-помощник из папки userscripts. Без него загрузите два файла вручную ниже.</div>
+                        <div class="hint">Нужен скрипт-помощник userscripts/widget-grabber.user.js. Без него загрузите два файла вручную ниже.</div>
                     </div>
 
                     <div class="input-group">
@@ -82,6 +82,15 @@
 
                 <!-- Панель T-cloud -->
                 <div class="tab-panel" id="panel-tcloud" style="display:none;">
+                    <div class="input-group">
+                        <label>Автозагрузка по ссылке на виджет:</label>
+                        <input type="text" id="tcloud-link" placeholder="Ссылка на виджет схемы (https://...)">
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn" onclick="tcloudOpenWidget()">Открыть и забрать данные</button>
+                            <button class="btn" onclick="tcloudPasteBundle()">Вставить из буфера</button>
+                        </div>
+                        <div class="hint">Нужен скрипт-помощник userscripts/widget-grabber.user.js. Без него загрузите SVG вручную ниже.</div>
+                    </div>
                     <div class="file-upload" id="tcloud-dropzone">
                         <p>Загрузите SVG-файл</p>
                         <small>Нажмите для выбора</small>
