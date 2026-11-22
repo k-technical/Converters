@@ -147,7 +147,7 @@ function processTcloud() {
 
         // Масштаб схемы под размер места и уменьшение мест
         let scaleInfo = '';
-        if (document.getElementById('tcloud-scale').checked && seatElements.length > 0) {
+        if (seatElements.length > 0) {
             scaleInfo = tcloudApplyScale(doc, seatElements);
         }
 
@@ -164,6 +164,10 @@ function processTcloud() {
     }
 }
 
+// Размер места после масштаба и итоговый процент (15 px × 80% = 12 px)
+const TCLOUD_SEAT_TARGET = 15;
+const TCLOUD_SEAT_PERCENT = 80;
+
 function tcloudNum(n) {
     return String(Math.round(n * 10000) / 10000);
 }
@@ -171,10 +175,8 @@ function tcloudNum(n) {
 // Коэффициент = целевой размер / исходный размер места; схема масштабируется через width/height
 // (содержимое остаётся в исходных координатах), места уменьшаются до заданного процента
 function tcloudApplyScale(doc, seatElements) {
-    const target = parseFloat(document.getElementById('tcloud-target').value);
-    const pct = parseFloat(document.getElementById('tcloud-pct').value);
-    if (!(target > 0)) throw new Error('Укажите размер места после масштаба (больше 0)');
-    if (!(pct > 0 && pct <= 100)) throw new Error('Процент размера мест должен быть от 1 до 100');
+    const target = TCLOUD_SEAT_TARGET;
+    const pct = TCLOUD_SEAT_PERCENT;
 
     const sizes = seatElements.map(el => parseFloat(el.getAttribute('r')) * 2).filter(v => v > 0).sort((a, b) => a - b);
     if (!sizes.length) throw new Error('У мест нет радиуса r, масштаб посчитать нельзя');
