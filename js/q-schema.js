@@ -251,6 +251,9 @@ function processQ() {
         };
 
         const stats = {};
+        const groupsByZone = new Map();
+        let contoursGroup = null;
+        let firstSeatGroup = null;
         if (grouped) {
             const groups = new Map();
             seats.forEach(seat => {
@@ -263,7 +266,9 @@ function processQ() {
                     existingIds.add(gid);
                     g.setAttribute('id', gid);
                     groups.set(key, g);
+                    groupsByZone.set(key, g);
                     svg.appendChild(g);
+                    if (!firstSeatGroup) firstSeatGroup = g;
                 }
                 groups.get(key).appendChild(makeCircle(seat));
                 stats[zoneNames[key] || key] = (stats[zoneNames[key] || key] || 0) + 1;
@@ -273,13 +278,53 @@ function processQ() {
             seatsGroup.setAttribute('id', 'seats-overlay');
             seats.forEach(seat => seatsGroup.appendChild(makeCircle(seat)));
             svg.appendChild(seatsGroup);
+            firstSeatGroup = seatsGroup;
+        }
+
+        // Контуры зон (outline из настроек схемы): одинаковые контуры (например, варианты танцпола) добавляем один раз
+        let outlineCount = 0;
+        if (document.getElementById('q-outline').checked && screen && screen.zones) {
+            const byPath = new Map();
+            Object.keys(screen.zones).forEach(zid => {
+                const d = String(screen.zones[zid].outline || '').trim();
+                if (!d) return;
+                if (!byPath.has(d)) byPath.set(d, []);
+                byPath.get(d).push(zid);
+            });
+            byPath.forEach((zoneIds, d) => {
+                const path = document.createElementNS(NS, 'path');
+                path.setAttribute('id', 'Контур_1');
+                path.setAttribute('d', d);
+                path.setAttribute('fill', 'none');
+                path.setAttribute('stroke', '#000000');
+                path.setAttribute('stroke-width', '1');
+                let target = null;
+                if (grouped) {
+                    const withSeats = zoneIds.find(z => groupsByZone.has(z));
+                    if (withSeats) target = groupsByZone.get(withSeats);
+                }
+                if (!target) {
+                    target = document.createElementNS(NS, 'g');
+                    let gid = grouped ? (zoneNames[zoneIds[0]] || zoneIds[0]) : 'Контуры';
+                    if (existingIds.has(gid)) gid += grouped ? ' контур' : '';
+                    if (!grouped && contoursGroup) target = contoursGroup;
+                    else {
+                        existingIds.add(gid);
+                        target.setAttribute('id', gid);
+                        svg.insertBefore(target, firstSeatGroup);
+                        if (!grouped) contoursGroup = target;
+                    }
+                }
+                target.insertBefore(path, target.firstChild);
+                outlineCount++;
+            });
         }
 
         const finalSVG = serializeSVG(svgDoc);
         const details = Object.keys(stats).map(n => n + ' (' + stats[n] + ')').join(', ');
 
         showPreview(finalSVG);
-        setStatus(`✓ Создано: ${seats.length} мест` + (details ? '\n📊 ' + details : ''));
+        setStatus(`✓ Создано: ${seats.length} мест` + (outlineCount ? `, ${outlineCount} контуров зон` : '') + (details ? '\n📊 ' + details : ''));
 
         document.getElementById('q-download').style.display = 'block';
 
