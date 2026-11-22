@@ -1,3 +1,4 @@
+// Red-K Schema - финальный сборщик схемы
 let redkSvgText = null;
 let redkJsonData = null;
 let redkSvgLoaded = false;
@@ -365,8 +366,7 @@ function buildRedkSVG() {
             circle.setAttribute('stroke-width', strokeW);
 
             const label = formatSeatLabel(seat.id);
-            const idEl = document.getElementById('opt-idmode');
-            const encodedId = (idEl && idEl.value === 'plain') ? label : encodeForId(label);
+            const encodedId = label;
             circle.setAttribute('id', encodedId);
             circle.setAttribute('class', 'st1');
 
