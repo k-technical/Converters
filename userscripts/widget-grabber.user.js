@@ -4,11 +4,11 @@
 // @match        https://widget.afisha.yandex.ru/*
 // @match        https://ticketscloud.com/*
 // @match        https://*.qtickets.ru/*
-// @run-at       document-start
+// @match        https://*.qtickets.tech/*
 // ==/UserScript==
 // Замените домены на адреса из ваших ссылок (формат https://домен/*).
 // Для третьей строки используйте шаблон с поддоменами: https://*.домен/* (подходит для любых поддоменов).
-// Ненужные строки @match удалите.
+// Ненужные строки @match удалите. Если схема загружается во вложенном окне другого домена, добавьте для него отдельную строку @match.
 (function () {
     const IS_TOP = window.top === window.self;
     const RE_PUBLIC = /PUBLIC-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/;
@@ -33,11 +33,19 @@
         return Array.from(seen);
     }
 
+    const frames = new Map(); // сводки от вложенных окон (фреймов)
+    const strip = u => String(u).split('?')[0].split('#')[0]; // параметры адреса могут содержать токены сессии
+
     function debugText() {
         const urls = allUrls();
-        const rel = urls.filter(u => /public|scheme|\.svg|widget/i.test(u)).slice(0, 60);
-        return 'Диагностика помощника\n' + location.origin + '\nресурсов: ' + urls.length +
-            '\nошибки: ' + (errors.join('; ') || 'нет') + '\n' + rel.join('\n');
+        let iframes = [];
+        try { iframes = Array.from(document.querySelectorAll('iframe')).map(f => strip(f.src || 'без src')); } catch (e) { /* нет DOM */ }
+        const fr = Array.from(frames.values()).map(f => '  ' + f.host + f.path + ' | ресурсов: ' + f.n + (f.rel.length ? '\n    ' + f.rel.join('\n    ') : ''));
+        return 'Диагностика помощника\n' + strip(location.href) + '\nресурсов: ' + urls.length +
+            '\nошибки: ' + (errors.join('; ') || 'нет') +
+            '\niframe на странице (' + iframes.length + '): ' + (iframes.join(', ') || 'нет') +
+            '\nфреймы, где работает помощник (' + fr.length + '):\n' + (fr.join('\n') || '  нет') +
+            '\nадреса ресурсов (до 120, без параметров):\n' + urls.slice(0, 120).map(strip).join('\n');
     }
 
     function badge(text, payload) {
@@ -71,6 +79,11 @@
     }
 
     function send(payload) {
+        if (!IS_TOP) {
+            // Во фрейме нет связи с конвертером: передаём данные главному окну страницы
+            try { window.top.postMessage({ type: '__wg_payload', payload: payload }, '*'); } catch (e) { errors.push('фрейм не смог передать данные'); }
+            return;
+        }
         const op = getOpener();
         if (op) {
             op.postMessage(payload, '*');
@@ -78,6 +91,20 @@
         } else {
             badge('Нет связи с конвертером. Откройте страницу кнопкой из конвертера или скопируйте данные.', payload);
         }
+    }
+
+    // Главное окно принимает сводки и данные от фреймов
+    if (IS_TOP) {
+        window.addEventListener('message', (e) => {
+            const d = e.data;
+            if (!d || typeof d !== 'object') return;
+            if (d.type === '__wg_frame') {
+                frames.set(String(d.host) + String(d.path), { host: String(d.host), path: String(d.path), n: d.n | 0, rel: Array.isArray(d.rel) ? d.rel.slice(0, 40).map(String) : [] });
+            } else if (d.type === '__wg_payload' && !done && d.payload && typeof d.payload.type === 'string') {
+                done = true;
+                send(d.payload);
+            }
+        });
     }
 
     // Текст файла: сначала обычный fetch, затем (если разрешён в расширении) GM.xmlHttpRequest
@@ -169,6 +196,12 @@
         let ok = false;
         try { ok = await grab(); } catch (e) { errors.push(String(e && e.message || e)); }
         if (ok) { done = true; clearInterval(timer); return; }
-        if (IS_TOP && tries % 2 === 1) badge(state + ' (ресурсов: ' + seen.size + ')');
+        if (IS_TOP && tries % 2 === 1) badge(state + ' (ресурсов: ' + seen.size + ', фреймов с помощником: ' + frames.size + ')');
+        if (!IS_TOP && tries % 2 === 1) {
+            try {
+                const rel = allUrls().filter(x => /public|scheme|\.svg|widget|\.js(\?|$)/i.test(x)).slice(0, 30).map(strip);
+                window.top.postMessage({ type: '__wg_frame', host: location.host, path: location.pathname, n: seen.size, rel: rel }, '*');
+            } catch (e) { /* нет доступа */ }
+        }
     }, 1500);
 })();
