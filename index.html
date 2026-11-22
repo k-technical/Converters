@@ -147,13 +147,29 @@
 
                 <!-- Панель T-Land -->
                 <div class="tab-panel" id="panel-tland" style="display:none;">
+                    <div class="input-group">
+                        <label>Автозагрузка по ссылке на страницу события:</label>
+                        <input type="text" id="tland-link" placeholder="Ссылка на страницу события (https://...)">
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn" onclick="tlandOpenWidget()">Открыть и забрать данные</button>
+                            <button class="btn" onclick="tlandPasteBundle()">Вставить из буфера</button>
+                        </div>
+                        <div class="hint">Нужен скрипт-помощник userscripts/widget-grabber.user.js. Без него загрузите SVG вручную ниже.</div>
+                    </div>
                     <div class="file-upload" id="tland-dropzone">
                         <p>Загрузите SVG-файл</p>
                          <small>Нажмите для выбора</small>
                     </div>
                     <input type="file" id="tland-file" style="display:none;">
                     <div id="tland-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
-                    
+                    <div class="option">
+                        <input type="checkbox" id="tland-clean" checked>
+                        <label for="tland-clean">Очистить служебные данные (комментарии, лишние пространства имён)</label>
+                    </div>
+                    <div class="option">
+                        <input type="checkbox" id="tland-titles" checked>
+                        <label for="tland-titles">Подсказки к местам (title с сектором, рядом и местом)</label>
+                    </div>
                     <button class="btn primary" onclick="processTland()">Конвертировать</button>
                     <button class="btn" id="tland-download" style="display:none;" onclick="downloadTland()">Скачать SVG</button>
                     <button class="btn" onclick="clearTland()">Очистить</button>
