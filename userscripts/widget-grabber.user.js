@@ -6,16 +6,22 @@
 // @match        https://*.qtickets.ru/*
 // @match        https://*.qtickets.tech/*
 // @run-at       document-start
+// @grant        GM.xmlHttpRequest
+// @grant        GM_xmlhttpRequest
+// @connect      cdn.qtickets.tech
 // ==/UserScript==
 // Замените домены на адреса из ваших ссылок (формат https://домен/*).
 // Для третьей строки используйте шаблон с поддоменами: https://*.домен/* (подходит для любых поддоменов).
 // Ненужные строки @match удалите. Если схема загружается во вложенном окне другого домена, добавьте для него отдельную строку @match.
 (function () {
+    const VERSION = '5';
     const IS_TOP = window.top === window.self;
     const RE_PUBLIC = /PUBLIC-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/;
     const cache = new Map();   // url -> текст (каждый файл запрашиваем один раз)
     const seen = new Set();    // все адреса загруженных ресурсов
     const errors = [];
+    const fails = new Map(); // url -> число неудачных скачиваний
+    const addErr = m => { if (!errors.includes(m)) errors.push(m); };
     let done = false;
     let tries = 0;
     let state = 'Помощник работает. Откройте схему зала на странице…';
@@ -41,8 +47,8 @@
         const urls = allUrls();
         let iframes = [];
         try { iframes = Array.from(document.querySelectorAll('iframe')).map(f => strip(f.src || 'без src')); } catch (e) { /* нет DOM */ }
-        const fr = Array.from(frames.values()).map(f => '  ' + f.host + f.path + ' | ресурсов: ' + f.n + (f.rel.length ? '\n    ' + f.rel.join('\n    ') : ''));
-        return 'Диагностика помощника\n' + strip(location.href) + '\nресурсов: ' + urls.length +
+        const fr = Array.from(frames.values()).map(f => '  ' + f.host + f.path + ' | ресурсов: ' + f.n + (f.st ? '\n    статус: ' + f.st : '') + '\n    ошибки: ' + (f.err.join('; ') || 'нет') + (f.rel.length ? '\n    ' + f.rel.join('\n    ') : ''));
+        return 'Диагностика помощника (версия ' + VERSION + ')\n' + strip(location.href) + '\nресурсов: ' + urls.length +
             '\nошибки: ' + (errors.join('; ') || 'нет') +
             '\niframe на странице (' + iframes.length + '): ' + (iframes.join(', ') || 'нет') +
             '\nфреймы, где работает помощник (' + fr.length + '):\n' + (fr.join('\n') || '  нет') +
@@ -82,7 +88,7 @@
     function send(payload) {
         if (!IS_TOP) {
             // Во фрейме нет связи с конвертером: передаём данные главному окну страницы
-            try { window.top.postMessage({ type: '__wg_payload', payload: payload }, '*'); } catch (e) { errors.push('фрейм не смог передать данные'); }
+            try { window.top.postMessage({ type: '__wg_payload', payload: payload }, '*'); } catch (e) { addErr('фрейм не смог передать данные'); }
             return;
         }
         const op = getOpener();
@@ -100,7 +106,7 @@
             const d = e.data;
             if (!d || typeof d !== 'object') return;
             if (d.type === '__wg_frame') {
-                frames.set(String(d.host) + String(d.path), { host: String(d.host), path: String(d.path), n: d.n | 0, rel: Array.isArray(d.rel) ? d.rel.slice(0, 40).map(String) : [] });
+                frames.set(String(d.host) + String(d.path), { host: String(d.host), path: String(d.path), n: d.n | 0, rel: Array.isArray(d.rel) ? d.rel.slice(0, 40).map(String) : [], err: Array.isArray(d.err) ? d.err.slice(0, 10).map(String) : [], st: String(d.st || '') });
             } else if (d.type === '__wg_payload' && !done && d.payload && typeof d.payload.type === 'string') {
                 done = true;
                 send(d.payload);
@@ -108,29 +114,34 @@
         });
     }
 
-    // Текст файла: сначала обычный fetch, затем (если разрешён в расширении) GM.xmlHttpRequest
+    // Текст файла: сначала обычный fetch, затем GM.xmlHttpRequest (обходит запрет CORS, если разрешён в шапке скрипта)
+    function gmGet(url) {
+        return new Promise((res, rej) => {
+            const opts = { method: 'GET', url: url, onload: r => res(String((r && r.responseText) || '')), onerror: () => rej(new Error('gm error')), ontimeout: () => rej(new Error('gm timeout')) };
+            if (typeof GM !== 'undefined' && GM.xmlHttpRequest) GM.xmlHttpRequest(opts);
+            else if (typeof GM_xmlhttpRequest !== 'undefined') GM_xmlhttpRequest(opts);
+            else rej(new Error('нет GM API'));
+        });
+    }
+
     async function load(u) {
         if (cache.has(u)) return cache.get(u);
         let t = '';
+        let how = 'fetch';
         try {
             t = (await (await fetch(u)).text()).replace(/^\uFEFF/, '').trim();
         } catch (e) {
-            try {
-                if (typeof GM !== 'undefined' && GM.xmlHttpRequest) {
-                    t = await new Promise((res, rej) => GM.xmlHttpRequest({
-                        method: 'GET', url: u, onload: r => res(String(r.responseText || '')), onerror: rej
-                    }));
-                    t = t.replace(/^\uFEFF/, '').trim();
-                }
-            } catch (e2) { /* ниже запишем ошибку */ }
-            if (!t) {
-                let host = u;
-                try { host = new URL(u).host; } catch (e3) { /* оставляем как есть */ }
-                errors.push('не скачался ' + host);
-            }
+            how = 'GM';
+            try { t = (await gmGet(u)).replace(/^\uFEFF/, '').trim(); } catch (e2) { how = 'GM: ' + (e2 && e2.message || e2); }
         }
-        cache.set(u, t);
-        return t;
+        if (t) { cache.set(u, t); return t; }
+        let host = u;
+        try { host = new URL(u).host; } catch (e3) { /* оставляем как есть */ }
+        addErr('не скачался ' + host + ' (' + how + ')');
+        const n = (fails.get(u) || 0) + 1;
+        fails.set(u, n);
+        if (n >= 3) cache.set(u, ''); // после трёх неудач не повторяем
+        return '';
     }
 
     async function grab() {
@@ -154,10 +165,13 @@
             if (json && svg) { send({ type: 'ya-schema-files', json: json, svg: svg }); return true; }
         }
 
-        // 2) Q.Schema: файл с кодом схемы (*_public.js или встроенный) + SVG подложка
+        // 2) Q.Schema: файл с кодом схемы (*.public.js / *_public.js или встроенный) + SVG подложка
         let code = '';
         const jsUrl = urls.find(u => /[._]public\.js(\?|#|$)/i.test(u) || /scheme[^/]*\.js(\?|#|$)/i.test(u));
-        if (jsUrl) code = await load(jsUrl);
+        if (jsUrl) {
+            code = await load(jsUrl);
+            state = 'Q: файл кода найден, ' + (code ? 'скачан' : 'не скачался');
+        }
         if (!/schemeConfig/.test(code)) {
             try {
                 const inline = Array.from(document.scripts).map(s => s.textContent || '').find(t => /window\.schemeConfig\s*=/.test(t));
@@ -170,8 +184,12 @@
             if (imgUrl) {
                 const svg = await load(imgUrl);
                 if (/<svg[\s>]/i.test(svg.slice(0, 2000))) { send({ type: 'q-files', js: code, svg: svg }); return true; }
+                state = 'Q: код есть, подложка ' + (svg ? 'скачана, но это не SVG' : 'не скачалась');
+            } else {
+                state = 'Q: код есть, адрес подложки не найден';
             }
-            state = 'Код схемы найден, подложка не скачалась. Нажмите «Копировать диагностику».';
+        } else if (jsUrl && code) {
+            state = 'Q: файл кода найден, но в нём нет schemeConfig';
         }
 
         // 3) T-cloud: один SVG со схемой (есть атрибуты tc-row-no)
@@ -195,13 +213,13 @@
             return;
         }
         let ok = false;
-        try { ok = await grab(); } catch (e) { errors.push(String(e && e.message || e)); }
+        try { ok = await grab(); } catch (e) { addErr(String(e && e.message || e)); }
         if (ok) { done = true; clearInterval(timer); return; }
         if (IS_TOP && tries % 2 === 1) badge(state + ' (ресурсов: ' + seen.size + ', фреймов с помощником: ' + frames.size + ')');
         if (!IS_TOP && tries % 2 === 1) {
             try {
                 const rel = allUrls().filter(x => /public|scheme|\.svg|widget|\.js(\?|$)/i.test(x)).slice(0, 30).map(strip);
-                window.top.postMessage({ type: '__wg_frame', host: location.host, path: location.pathname, n: seen.size, rel: rel }, '*');
+                window.top.postMessage({ type: '__wg_frame', host: location.host, path: location.pathname, n: seen.size, rel: rel, err: errors.slice(-8), st: state }, '*');
             } catch (e) { /* нет доступа */ }
         }
     }, 1500);
