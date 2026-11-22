@@ -5,6 +5,7 @@
 // @match        https://ticketscloud.com/*
 // @match        https://*.qtickets.ru/*
 // @match        https://*.qtickets.tech/*
+// @match        https://www.ticketland.ru/*
 // @run-at       document-start
 // @grant        GM.xmlHttpRequest
 // @grant        GM_xmlhttpRequest
