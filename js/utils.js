@@ -32,17 +32,14 @@ function extractJSON(input) {
 // Общие настройки (панель сверху): формат id и радиус мест
 const SEAT_STROKE = '#AEAEAE';
 
-// Формат ID места. defEncoded - как было в модуле по умолчанию
-function fmtId(row, place, defEncoded) {
-    const el = document.getElementById('opt-idmode');
-    const mode = el ? el.value : 'auto';
-    const enc = mode === 'enc' ? true : mode === 'plain' ? false : !!defEncoded;
-    return enc ? `Ряд_x5F_${row}_x7C_${place}-${place}` : `Ряд_${row}|${place}-${place}`;
+// Формат ID места: Ряд_1|2-2 (третий аргумент оставлен для совместимости модулей)
+function fmtId(row, place) {
+    return `Ряд_${row}|${place}-${place}`;
 }
 
-// Старое имя: кодированный формат по умолчанию
+// Старое имя функции
 function formatSeatId(row, place) {
-    return fmtId(row, place, true);
+    return fmtId(row, place);
 }
 
 // Радиус мест: общее поле или значение модуля по умолчанию
