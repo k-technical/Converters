@@ -1,4 +1,3 @@
-// Red-K Schema - финальный сборщик схемы
 let redkSvgText = null;
 let redkJsonData = null;
 let redkSvgLoaded = false;
