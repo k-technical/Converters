@@ -5,6 +5,7 @@
 // @match        https://ticketscloud.com/*
 // @match        https://*.qtickets.ru/*
 // @match        https://*.qtickets.tech/*
+// @run-at       document-start
 // ==/UserScript==
 // Замените домены на адреса из ваших ссылок (формат https://домен/*).
 // Для третьей строки используйте шаблон с поддоменами: https://*.домен/* (подходит для любых поддоменов).
@@ -155,7 +156,7 @@
 
         // 2) Q.Schema: файл с кодом схемы (*_public.js или встроенный) + SVG подложка
         let code = '';
-        const jsUrl = urls.find(u => /_public\.js(\?|#|$)/i.test(u) || /scheme[^/]*\.js(\?|#|$)/i.test(u));
+        const jsUrl = urls.find(u => /[._]public\.js(\?|#|$)/i.test(u) || /scheme[^/]*\.js(\?|#|$)/i.test(u));
         if (jsUrl) code = await load(jsUrl);
         if (!/schemeConfig/.test(code)) {
             try {
