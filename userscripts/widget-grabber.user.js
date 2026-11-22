@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         widget-grabber
-// @description  Забирает данные схемы со страницы виджета и отдаёт их конвертеру (Ya.Schema 2 Public, T-cloud, Q.Schema)
+// @description  Забирает данные схемы
 // @match        https://widget.afisha.yandex.ru/*
 // @match        https://ticketscloud.com/*
 // @match        https://*.qtickets.ru/*
