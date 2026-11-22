@@ -11,17 +11,11 @@
         <div class="header">
             <h1>Converters</h1>
             <p>JSON-SVG</p>
+            <p class="hint">Автозагрузка по ссылке работает со скриптом-помощником userscripts/widget-grabber.user.js. Без него загрузите файлы вручную.</p>
         </div>
 
         <!-- Общие настройки -->
         <div class="options-bar">
-            <label>Формат id
-                <select id="opt-idmode">
-                    <option value="auto">как в модуле</option>
-                    <option value="plain">Ряд_1|5-5</option>
-                    <option value="enc">Ряд_x5F_1_x7C_5-5</option>
-                </select>
-            </label>
             <label>Радиус мест
                 <input type="number" id="opt-radius" min="1" step="0.5" placeholder="по умолчанию">
             </label>
@@ -29,9 +23,9 @@
 
         <!-- Табы -->
         <div class="tabs">
-            <button class="tab active" data-tab="ya">Ya.Schema 2 Public</button>
+            <button class="tab active" data-tab="ya">Ya</button>
             <button class="tab" data-tab="tcloud">T-cloud</button>
-            <button class="tab" data-tab="q">Q.Schema</button>
+            <button class="tab" data-tab="q">Q-ti</button>
             <button class="tab" data-tab="tland">T-Land</button>
             <button class="tab" data-tab="redk">Red-K</button>
             <button class="tab" data-tab="rado">Rad-o</button>
@@ -55,7 +49,6 @@
                             <button class="btn" onclick="yaOpenWidget()">Открыть и забрать данные</button>
                             <button class="btn" onclick="yaPasteBundle()">Вставить из буфера</button>
                         </div>
-                        <div class="hint">Нужен скрипт-помощник userscripts/widget-grabber.user.js. Без него загрузите два файла вручную ниже.</div>
                     </div>
 
                     <div class="input-group">
@@ -89,7 +82,6 @@
                             <button class="btn" onclick="tcloudOpenWidget()">Открыть и забрать данные</button>
                             <button class="btn" onclick="tcloudPasteBundle()">Вставить из буфера</button>
                         </div>
-                        <div class="hint">Нужен скрипт-помощник userscripts/widget-grabber.user.js. Без него загрузите SVG вручную ниже.</div>
                     </div>
                     <div class="file-upload" id="tcloud-dropzone">
                         <p>Загрузите SVG-файл</p>
@@ -97,15 +89,6 @@
                     </div>
                     <input type="file" id="tcloud-file" style="display:none;">
                     <div id="tcloud-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
-                    <div class="option">
-                        <input type="checkbox" id="tcloud-scale" checked>
-                        <label for="tcloud-scale">Масштабировать схему под размер места</label>
-                    </div>
-                    <div class="params">
-                        <label>Размер места после масштаба, px<input type="number" id="tcloud-target" value="15" min="1" step="0.5"></label>
-                        <label>Места, % от этого размера<input type="number" id="tcloud-pct" value="80" min="10" max="100" step="1"></label>
-                    </div>
-                    <div class="hint">Коэффициент = размер места из поля / исходный размер места. Итоговое место = 15 × 80% = 12 px.</div>
                     <button class="btn primary" onclick="processTcloud()">Конвертировать</button>
                     <button class="btn" id="tcloud-download" style="display:none;" onclick="downloadTcloud()">Скачать SVG</button>
                     <button class="btn" onclick="clearTcloud()">Очистить</button>
@@ -120,7 +103,6 @@
                             <button class="btn" onclick="qOpenWidget()">Открыть и забрать данные</button>
                             <button class="btn" onclick="qPasteBundle()">Вставить из буфера</button>
                         </div>
-                        <div class="hint">Нужен скрипт-помощник userscripts/widget-grabber.user.js. Без него загрузите файлы вручную ниже.</div>
                     </div>
                     <div class="file-upload" id="q-dropzone">
                         <p>Перетащите сюда SVG-подложку и файл с кодом</p>
@@ -131,14 +113,6 @@
                     <div class="input-group">
                         <label>Код с координатами (window.schemeConfig):</label>
                         <textarea id="q-code" placeholder="Вставьте код из файла со схемой..."></textarea>
-                    </div>
-                    <div class="option">
-                        <input type="checkbox" id="q-group" checked>
-                        <label for="q-group">Группировать места по зонам</label>
-                    </div>
-                    <div class="option">
-                        <input type="checkbox" id="q-outline" checked>
-                        <label for="q-outline">Добавить контуры зон (если есть в коде)</label>
                     </div>
                     <button class="btn primary" onclick="processQ()">Конвертировать</button>
                     <button class="btn" id="q-download" style="display:none;" onclick="downloadQ()">Скачать SVG</button>
@@ -154,7 +128,6 @@
                             <button class="btn" onclick="tlandOpenWidget()">Открыть и забрать данные</button>
                             <button class="btn" onclick="tlandPasteBundle()">Вставить из буфера</button>
                         </div>
-                        <div class="hint">Нужен скрипт-помощник userscripts/widget-grabber.user.js. Без него загрузите SVG вручную ниже.</div>
                     </div>
                     <div class="file-upload" id="tland-dropzone">
                         <p>Загрузите SVG-файл</p>
