@@ -24,6 +24,71 @@ function readTlandFile(file) {
     reader.readAsText(file);
 }
 
+// ---- Преобразования SVG (transform): места внутри групп с translate/scale/rotate ----
+function tlandMul(A, B) {
+    return [
+        A[0] * B[0] + A[2] * B[1], A[1] * B[0] + A[3] * B[1],
+        A[0] * B[2] + A[2] * B[3], A[1] * B[2] + A[3] * B[3],
+        A[0] * B[4] + A[2] * B[5] + A[4], A[1] * B[4] + A[3] * B[5] + A[5]
+    ];
+}
+
+function tlandParseTransform(str) {
+    let m = [1, 0, 0, 1, 0, 0];
+    const re = /(matrix|translate|scale|rotate|skewX|skewY)\s*\(([^)]*)\)/g;
+    let t;
+    while ((t = re.exec(str || '')) !== null) {
+        const n = t[2].trim().split(/[\s,]+/).map(Number);
+        let k = null;
+        if (t[1] === 'matrix' && n.length === 6) k = n;
+        else if (t[1] === 'translate') k = [1, 0, 0, 1, n[0], n[1] || 0];
+        else if (t[1] === 'scale') k = [n[0], 0, 0, n.length > 1 ? n[1] : n[0], 0, 0];
+        else if (t[1] === 'rotate') {
+            const a = n[0] * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+            k = n.length >= 3 ? [c, s, -s, c, n[1] - c * n[1] + s * n[2], n[2] - s * n[1] - c * n[2]] : [c, s, -s, c, 0, 0];
+        } else if (t[1] === 'skewX') k = [1, 0, Math.tan(n[0] * Math.PI / 180), 1, 0, 0];
+        else if (t[1] === 'skewY') k = [1, Math.tan(n[0] * Math.PI / 180), 0, 1, 0, 0];
+        if (k && k.every(v => !isNaN(v))) m = tlandMul(m, k);
+    }
+    return m;
+}
+
+// Общая матрица элемента: transform всех родителей и самого элемента
+function tlandAccumulatedMatrix(el) {
+    const chain = [];
+    for (let p = el; p && p.nodeType === 1; p = p.parentNode) {
+        if (p.getAttribute && p.getAttribute('transform')) chain.unshift(p.getAttribute('transform'));
+    }
+    return chain.reduce((m, tr) => tlandMul(m, tlandParseTransform(tr)), [1, 0, 0, 1, 0, 0]);
+}
+
+// Естественная сортировка: 2 < 10, "1а" после "1"
+function tlandNatural(a, b) {
+    return String(a).localeCompare(String(b), 'ru', { numeric: true });
+}
+
+// Очистка служебных данных исходного файла: комментарии, лишние пространства имён, неиспользуемые шаблоны
+function tlandCleanup(doc) {
+    const stripComments = (node) => {
+        Array.from(node.childNodes).forEach(c => {
+            if (c.nodeType === 8) node.removeChild(c);
+            else if (c.nodeType === 1) stripComments(c);
+        });
+    };
+    stripComments(doc);
+    const root = doc.documentElement;
+    Array.from(root.attributes).forEach(a => {
+        if (a.name.startsWith('xmlns:') && a.name !== 'xmlns:xlink') root.removeAttribute(a.name);
+    });
+    // defs без использования (например, шаблон-галочка для сайта)
+    root.querySelectorAll('defs').forEach(defs => {
+        const html = new XMLSerializer().serializeToString(root);
+        const ids = Array.from(defs.querySelectorAll('[id]')).map(e => e.getAttribute('id'));
+        const used = ids.some(id => html.includes('url(#' + id + ')') || html.includes('href="#' + id + '"'));
+        if (!used) defs.parentNode.removeChild(defs);
+    });
+}
+
 function processTland() {
     try {
         if (!tlandSvgContent) {
@@ -76,11 +141,15 @@ function processTlandSVG(svgText) {
 
     // Живая копия для измерения path через getBBox
     let liveEls = null;
-    try {
-        const host = hiddenHost();
-        host.innerHTML = svgText;
-        liveEls = host.querySelectorAll('[section][seat]');
-    } catch (e) { liveEls = null; }
+    const needLive = Array.from(elements).some(e => e.tagName.toLowerCase() === 'path');
+    if (needLive) {
+        try {
+            const host = hiddenHost();
+            host.innerHTML = svgText;
+            liveEls = host.querySelectorAll('[section][seat]');
+        } catch (e) { liveEls = null; }
+    }
+    let shifted = false;
     let missingRow = 0;
 
     elements.forEach((el, idx) => {
@@ -146,6 +215,17 @@ function processTlandSVG(svgText) {
         if (isNaN(cx) || isNaN(cy)) {
             return;
         }
+
+        // Учитываем transform самого места и всех родительских групп
+        const mtx = tlandAccumulatedMatrix(el);
+        if (mtx[0] !== 1 || mtx[1] !== 0 || mtx[2] !== 0 || mtx[3] !== 1 || mtx[4] !== 0 || mtx[5] !== 0) {
+            const nx = mtx[0] * cx + mtx[2] * cy + mtx[4];
+            const ny = mtx[1] * cx + mtx[3] * cy + mtx[5];
+            radius = radius * Math.sqrt(Math.abs(mtx[0] * mtx[3] - mtx[1] * mtx[2]));
+            cx = Math.round(nx * 10000) / 10000;
+            cy = Math.round(ny * 10000) / 10000;
+            shifted = true;
+        }
         
         // Создаём КРУГ с сохранением исходного размера
         const circle = doc.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -154,7 +234,7 @@ function processTlandSVG(svgText) {
         circle.setAttribute('cy', cy);
         circle.setAttribute('r', seatR(radius));
         circle.setAttribute('fill', 'none');
-        circle.setAttribute('stroke', '#AEAEAE');
+        circle.setAttribute('stroke', SEAT_STROKE);
         circle.setAttribute('stroke-width', '1');
         circle.setAttribute('id', newName);
         circle.setAttribute('data-original-id', elId);
@@ -163,9 +243,11 @@ function processTlandSVG(svgText) {
         circle.setAttribute('data-section', section);
         
         // Добавляем title для тултипа
-        const title = doc.createElementNS('http://www.w3.org/2000/svg', 'title');
-        title.textContent = `${section} | Ряд ${row} | Место ${seat}`;
-        circle.appendChild(title);
+        if (document.getElementById('tland-titles').checked) {
+            const title = doc.createElementNS('http://www.w3.org/2000/svg', 'title');
+            title.textContent = `${section} | Ряд ${row} | Место ${seat}`;
+            circle.appendChild(title);
+        }
         
         // Добавляем в группу сектора
         if (!sectorGroups.has(section)) {
@@ -177,6 +259,7 @@ function processTlandSVG(svgText) {
 
     const lh = document.getElementById('__hidden_host');
     if (lh) lh.remove();
+    if (shifted) addWarn('Учтён transform групп с местами (смещение/масштаб применены к координатам кругов)');
     if (missingRow > 0) addWarn('У ' + missingRow + ' мест нет атрибута row (подставлен ряд 1)');
 
     // Удаляем старые элементы
@@ -206,9 +289,9 @@ function processTlandSVG(svgText) {
         
         // Сортируем места по номеру
         seats.sort((a, b) => {
-            const seatA = parseInt(a.getAttribute('data-seat') || '0', 10);
-            const seatB = parseInt(b.getAttribute('data-seat') || '0', 10);
-            return seatA - seatB;
+            const byRow = tlandNatural(a.getAttribute('data-row') || '', b.getAttribute('data-row') || '');
+            if (byRow !== 0) return byRow;
+            return tlandNatural(a.getAttribute('data-seat') || '', b.getAttribute('data-seat') || '');
         });
         
         // Создаём группу
@@ -232,6 +315,8 @@ function processTlandSVG(svgText) {
         });
     });
 
+    if (document.getElementById('tland-clean').checked) tlandCleanup(doc);
+
     // Сериализуем
     const serializer = new XMLSerializer();
     let result = serializer.serializeToString(doc);
@@ -254,6 +339,54 @@ function processTlandSVG(svgText) {
     };
 }
 
+function tlandMarkLoaded(name) {
+    const dropzone = document.getElementById('tland-dropzone');
+    dropzone.classList.add('active');
+    dropzone.querySelector('p').textContent = 'Файл: ' + name;
+    const fileName = document.getElementById('tland-file-name');
+    fileName.textContent = '✓ Загружен: ' + name;
+    fileName.style.display = 'block';
+}
+
+// ---- Автозагрузка по ссылке на страницу события (нужен скрипт-помощник на странице) ----
+let tlandWin = null;
+
+function tlandOpenWidget() {
+    const url = document.getElementById('tland-link').value.trim();
+    if (!/^https:\/\//i.test(url)) { setStatus('Вставьте ссылку на страницу события (начинается с https://)', true); return; }
+    tlandWin = window.open(url, '_blank');
+    if (!tlandWin) { setStatus('Браузер заблокировал окно: разрешите всплывающие окна для этой страницы', true); return; }
+    setStatus('Жду данные от страницы… (на ней должен работать скрипт-помощник)');
+}
+
+function tlandApplyBundle(d) {
+    if (!d || typeof d.svg !== 'string' || !/<svg[\s>]/i.test(d.svg.slice(0, 2000))) {
+        setStatus('Неверный формат данных от помощника', true);
+        return;
+    }
+    tlandSvgContent = d.svg;
+    tlandMarkLoaded('со страницы');
+    processTland();
+}
+
+window.addEventListener('message', (e) => {
+    const d = e.data;
+    if (!d || d.type !== 'tland-svg') return;
+    if (!tlandWin || e.source !== tlandWin) return; // только от окна, открытого кнопкой
+    tlandApplyBundle(d);
+    try { tlandWin.close(); } catch (err) { /* окно можно закрыть вручную */ }
+});
+
+async function tlandPasteBundle() {
+    try {
+        const d = JSON.parse(await navigator.clipboard.readText());
+        if (d.type !== 'tland-svg') throw new Error('not bundle');
+        tlandApplyBundle(d);
+    } catch (e) {
+        setStatus('В буфере нет данных от помощника (нажмите «Копировать для конвертера» на странице)', true);
+    }
+}
+
 function downloadTland() {
     downloadCurrentResult('tland-grouped.svg');
 }
@@ -261,6 +394,8 @@ function downloadTland() {
 function clearTland() {
     tlandSvgContent = '';
     document.getElementById('tland-file').value = '';
+    document.getElementById('tland-link').value = '';
+    tlandWin = null;
     const dropzone = document.getElementById('tland-dropzone');
     dropzone.classList.remove('active');
     dropzone.querySelector('p').textContent = 'Перетащите SVG-файл сюда';
