@@ -235,7 +235,7 @@ function processQ() {
         const svgDoc = parseSVG(qSvgContent);
         const svg = svgDoc.documentElement;
         const NS = 'http://www.w3.org/2000/svg';
-        const grouped = document.getElementById('q-group').checked && exact;
+        const grouped = exact; // группы по зонам: всегда, если код разобран точно
         const existingIds = new Set(Array.from(svgDoc.querySelectorAll('[id]')).map(e => e.getAttribute('id')));
 
         const makeCircle = (seat) => {
@@ -283,7 +283,7 @@ function processQ() {
 
         // Контуры зон (outline из настроек схемы): одинаковые контуры (например, варианты танцпола) добавляем один раз
         let outlineCount = 0;
-        if (document.getElementById('q-outline').checked && screen && screen.zones) {
+        if (screen && screen.zones) {
             const byPath = new Map();
             Object.keys(screen.zones).forEach(zid => {
                 const d = String(screen.zones[zid].outline || '').trim();
