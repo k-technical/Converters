@@ -10,16 +10,13 @@
 // @grant        GM.xmlHttpRequest
 // @grant        GM_xmlhttpRequest
 // @connect      cdn.qtickets.tech
-// ==/UserScript==
-// Замените домены на адреса из ваших ссылок (формат https://домен/*).
-// Для третьей строки используйте шаблон с поддоменами: https://*.домен/* (подходит для любых поддоменов).
-// Ненужные строки @match удалите. Если схема загружается во вложенном окне другого домена, добавьте для него отдельную строку @match.
 (function () {
-    const VERSION = '5';
+    const VERSION = '7';
     const IS_TOP = window.top === window.self;
     const RE_PUBLIC = /PUBLIC-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/;
     const cache = new Map();   // url -> текст (каждый файл запрашиваем один раз)
     const seen = new Set();    // все адреса загруженных ресурсов
+    const types = new Map();   // адрес -> тип запроса (fetch, xmlhttprequest, script, img ...)
     const errors = [];
     const fails = new Map(); // url -> число неудачных скачиваний
     const addErr = m => { if (!errors.includes(m)) errors.push(m); };
@@ -31,12 +28,12 @@
     // Поэтому увеличиваем буфер и собираем адреса "вживую".
     try { performance.setResourceTimingBufferSize(5000); } catch (e) { /* не критично */ }
     try {
-        new PerformanceObserver(list => list.getEntries().forEach(e => seen.add(e.name)))
+        new PerformanceObserver(list => list.getEntries().forEach(e => { seen.add(e.name); types.set(e.name, e.initiatorType); }))
             .observe({ type: 'resource', buffered: true });
     } catch (e) { /* старый браузер: используем getEntriesByType */ }
 
     function allUrls() {
-        try { performance.getEntriesByType('resource').forEach(r => seen.add(r.name)); } catch (e) { /* пропускаем */ }
+        try { performance.getEntriesByType('resource').forEach(r => { seen.add(r.name); types.set(r.name, r.initiatorType); }); } catch (e) { /* пропускаем */ }
         try { document.querySelectorAll('script[src]').forEach(s => seen.add(s.src)); } catch (e) { /* DOM ещё не готов */ }
         return Array.from(seen);
     }
@@ -44,16 +41,28 @@
     const frames = new Map(); // сводки от вложенных окон (фреймов)
     const strip = u => String(u).split('?')[0].split('#')[0]; // параметры адреса могут содержать токены сессии
 
+    const SKIP = /\.(js|css|png|jpe?g|gif|webp|ico|woff2?|ttf|mp4|map)(\?|#|$)/i;
+
+    function domHasScheme() {
+        try { return Array.from(document.querySelectorAll('svg')).some(s => s.querySelector('[section][seat]') || s.querySelector('[tc-row-no]')); } catch (e) { return false; }
+    }
+
     function debugText() {
         const urls = allUrls();
         let iframes = [];
         try { iframes = Array.from(document.querySelectorAll('iframe')).map(f => strip(f.src || 'без src')); } catch (e) { /* нет DOM */ }
         const fr = Array.from(frames.values()).map(f => '  ' + f.host + f.path + ' | ресурсов: ' + f.n + (f.st ? '\n    статус: ' + f.st : '') + '\n    ошибки: ' + (f.err.join('; ') || 'нет') + (f.rel.length ? '\n    ' + f.rel.join('\n    ') : ''));
+        const xhr = urls.filter(x => /^(fetch|xmlhttprequest)$/.test(types.get(x) || '')).map(strip);
+        const other = urls.filter(x => !SKIP.test(x) && !/^(fetch|xmlhttprequest)$/.test(types.get(x) || '')).map(strip);
+        const svgs = urls.filter(x => /\.svg(\?|#|$)/i.test(x)).map(strip);
         return 'Диагностика помощника (версия ' + VERSION + ')\n' + strip(location.href) + '\nресурсов: ' + urls.length +
             '\nошибки: ' + (errors.join('; ') || 'нет') +
+            '\nсхема в DOM страницы: ' + (domHasScheme() ? 'есть' : 'нет') +
             '\niframe на странице (' + iframes.length + '): ' + (iframes.join(', ') || 'нет') +
             '\nфреймы, где работает помощник (' + fr.length + '):\n' + (fr.join('\n') || '  нет') +
-            '\nадреса ресурсов (до 120, без параметров):\n' + urls.slice(0, 120).map(strip).join('\n');
+            '\nзапросы fetch/XHR (' + xhr.length + ', до 70):\n' + xhr.slice(0, 70).join('\n') +
+            '\nSVG-файлы (' + svgs.length + ', до 30):\n' + svgs.slice(0, 30).join('\n') +
+            '\nпрочие, не js/css/шрифты (' + other.length + ', до 50):\n' + other.slice(0, 50).join('\n');
     }
 
     function badge(text, payload) {
@@ -145,6 +154,25 @@
         return '';
     }
 
+    // SVG из текста ответа: сам файл либо строка внутри JSON
+    function svgFromText(t) {
+        if (!t) return '';
+        if (/<svg[\s>]/i.test(t.slice(0, 2000))) return t;
+        if (t[0] === '{' || t[0] === '[') {
+            try {
+                let found = '';
+                const walk = v => {
+                    if (found) return;
+                    if (typeof v === 'string') { if (v.length > 2000 && /<svg[\s>]/i.test(v.slice(0, 3000))) found = v; }
+                    else if (v && typeof v === 'object') { for (const k in v) { walk(v[k]); if (found) return; } }
+                };
+                walk(JSON.parse(t));
+                return found;
+            } catch (e) { /* не JSON */ }
+        }
+        return '';
+    }
+
     async function grab() {
         const urls = allUrls();
 
@@ -193,14 +221,34 @@
             state = 'Q: файл кода найден, но в нём нет schemeConfig';
         }
 
-        // 3) T-cloud: один SVG со схемой (есть атрибуты tc-row-no)
-        const svgs = urls.filter(u => /\.svg(\?|#|$)/i.test(u)).slice(0, 40);
+        // 3) T-cloud / T-Land: один SVG со схемой. Источники по порядку: файлы SVG, затем схема в DOM страницы, затем запросы fetch/XHR
+        const check = (text) => {
+            const svg = svgFromText(text);
+            if (!svg) return null;
+            if (/tc-row-no/.test(svg)) return { type: 'tcloud-svg', svg: svg };
+            if (/hall-scheme-svg/.test(svg) || /\bsection="[^"]*"[^>]*\bseat="/.test(svg)) return { type: 'tland-svg', svg: svg };
+            return null;
+        };
+
+        const svgs = urls.filter(u => /\.svg(\?|#|$)/i.test(u) || (!SKIP.test(u) && /(hall|scheme|schema)/i.test(u.split('?')[0]))).slice(0, 40);
         for (const u of svgs) {
-            const t = await load(u);
-            if (/<svg[\s>]/i.test(t.slice(0, 2000)) && /tc-row-no/.test(t)) {
-                send({ type: 'tcloud-svg', svg: t });
-                return true;
-            }
+            const p = check(await load(u));
+            if (p) { send(p); return true; }
+        }
+
+        // Схема уже нарисована на странице как inline SVG
+        try {
+            const el = Array.from(document.querySelectorAll('svg')).find(s => s.querySelector('[section][seat]'));
+            if (el) { send({ type: 'tland-svg', svg: new XMLSerializer().serializeToString(el) }); return true; }
+        } catch (e) { addErr('DOM: ' + (e && e.message || e)); }
+
+        // Запросы страницы к её же сайту (SVG может приходить из API, в том числе внутри JSON)
+        const base = h => h.split('.').slice(-2).join('.');
+        const sameSite = x => { try { return base(new URL(x).hostname) === base(location.hostname); } catch (e) { return false; } };
+        const xhr = urls.filter(x => /^(fetch|xmlhttprequest)$/.test(types.get(x) || '') && !SKIP.test(x) && sameSite(x)).slice(0, 40);
+        for (const x of xhr) {
+            const p = check(await load(x));
+            if (p) { send(p); return true; }
         }
         return false;
     }
