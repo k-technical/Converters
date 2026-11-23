@@ -150,6 +150,14 @@
 
                 <!-- Панель Red-K -->
                 <div class="tab-panel" id="panel-redk" style="display:none;">
+                    <div class="input-group">
+                        <label>Автозагрузка по ссылке на страницу события:</label>
+                        <input type="text" id="redk-link" placeholder="Ссылка на страницу события (https://...)">
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn" onclick="redkOpenWidget()">Открыть и забрать данные</button>
+                            <button class="btn" onclick="redkPasteBundle()">Вставить из буфера</button>
+                        </div>
+                    </div>
                     <div class="file-upload" id="redk-svg-dropzone">
                         <p>Загрузите schema.svg</p>
                         <small>Нажмите для выбора</small>
