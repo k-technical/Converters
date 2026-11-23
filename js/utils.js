@@ -120,3 +120,61 @@ function parseViewBox(str) {
     const p = String(str || '').trim().split(/[\s,]+/).map(Number);
     return p.length === 4 && p.every(n => !isNaN(n)) ? p : null;
 }
+
+
+// ---- Преобразования SVG: накопленная матрица элемента с учётом transform всех родителей ----
+function svgMul(A, B) {
+    return [
+        A[0] * B[0] + A[2] * B[1], A[1] * B[0] + A[3] * B[1],
+        A[0] * B[2] + A[2] * B[3], A[1] * B[2] + A[3] * B[3],
+        A[0] * B[4] + A[2] * B[5] + A[4], A[1] * B[4] + A[3] * B[5] + A[5]
+    ];
+}
+
+function svgParseTransform(str) {
+    let m = [1, 0, 0, 1, 0, 0];
+    const re = /(matrix|translate|scale|rotate|skewX|skewY)\s*\(([^)]*)\)/g;
+    let t;
+    while ((t = re.exec(str || '')) !== null) {
+        const n = t[2].trim().split(/[\s,]+/).map(Number);
+        let k = null;
+        if (t[1] === 'matrix' && n.length === 6) k = n;
+        else if (t[1] === 'translate') k = [1, 0, 0, 1, n[0], n[1] || 0];
+        else if (t[1] === 'scale') k = [n[0], 0, 0, n.length > 1 ? n[1] : n[0], 0, 0];
+        else if (t[1] === 'rotate') {
+            const a = n[0] * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+            k = n.length >= 3 ? [c, s, -s, c, n[1] - c * n[1] + s * n[2], n[2] - s * n[1] - c * n[2]] : [c, s, -s, c, 0, 0];
+        } else if (t[1] === 'skewX') k = [1, 0, Math.tan(n[0] * Math.PI / 180), 1, 0, 0];
+        else if (t[1] === 'skewY') k = [1, Math.tan(n[0] * Math.PI / 180), 0, 1, 0, 0];
+        if (k && k.every(v => !isNaN(v))) m = svgMul(m, k);
+    }
+    return m;
+}
+
+function svgAccumulatedMatrix(el) {
+    const chain = [];
+    for (let p = el; p && p.nodeType === 1; p = p.parentNode) {
+        if (p.getAttribute && p.getAttribute('transform')) chain.unshift(p.getAttribute('transform'));
+    }
+    return chain.reduce((m, tr) => svgMul(m, svgParseTransform(tr)), [1, 0, 0, 1, 0, 0]);
+}
+
+// Клон элемента, который переносится в другое место схемы: сохраняем его положение через matrix(...)
+function svgCloneKeepPosition(el) {
+    const clone = el.cloneNode(true);
+    // Классы родительских групп (например, прозрачность группы) переносим на сам элемент
+    const inherited = [];
+    for (let p = el.parentNode; p && p.nodeType === 1 && p.tagName !== 'svg'; p = p.parentNode) {
+        const c = p.getAttribute && p.getAttribute('class');
+        if (c) inherited.unshift(c);
+    }
+    if (inherited.length) {
+        clone.setAttribute('class', ((clone.getAttribute('class') || '') + ' ' + inherited.join(' ')).trim());
+    }
+    const m = svgAccumulatedMatrix(el);
+    const identity = m[0] === 1 && m[1] === 0 && m[2] === 0 && m[3] === 1 && m[4] === 0 && m[5] === 0;
+    if (!identity) {
+        clone.setAttribute('transform', 'matrix(' + m.map(v => Math.round(v * 1e6) / 1e6).join(' ') + ')');
+    }
+    return clone;
+}
