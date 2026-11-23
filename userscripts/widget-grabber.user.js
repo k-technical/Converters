@@ -6,7 +6,8 @@
 // @match        https://*.qtickets.ru/*
 // @match        https://*.qtickets.tech/*
 // @match        https://www.ticketland.ru/*
-// @run-at       document-start
+// @match        https://redkassa.ru/*
+/// @run-at      document-start
 // @grant        GM.xmlHttpRequest
 // @grant        GM_xmlhttpRequest
 // @connect      cdn.qtickets.tech
@@ -15,7 +16,7 @@
 // Для третьей строки используйте шаблон с поддоменами: https://*.домен/* (подходит для любых поддоменов).
 // Ненужные строки @match удалите. Если схема загружается во вложенном окне другого домена, добавьте для него отдельную строку @match.
 (function () {
-    const VERSION = '7';
+    const VERSION = '8';
     const IS_TOP = window.top === window.self;
     const RE_PUBLIC = /PUBLIC-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/;
     const cache = new Map();   // url -> текст (каждый файл запрашиваем один раз)
@@ -198,6 +199,16 @@
             if (json && svg) { send({ type: 'ya-schema-files', json: json, svg: svg }); return true; }
         }
 
+        // 1б) Red-K: файлы schema.svg и schema.json
+        const rs = urls.find(x => /\/schema\.svg(\?|#|$)/i.test(x));
+        const rj = urls.find(x => /\/schema\.json(\?|#|$)/i.test(x));
+        if (rs && rj) {
+            const svg = await load(rs);
+            const json = await load(rj);
+            if (/<svg[\s>]/i.test(svg.slice(0, 2000)) && json[0] === '[') { send({ type: 'redk-files', svg: svg, json: json }); return true; }
+            state = 'Red-K: файлы найдены, ' + (svg ? '' : 'schema.svg не скачался ') + (json ? '' : 'schema.json не скачался');
+        }
+
         // 2) Q.Schema: файл с кодом схемы (*.public.js / *_public.js или встроенный) + SVG подложка
         let code = '';
         const jsUrl = urls.find(u => /[._]public\.js(\?|#|$)/i.test(u) || /scheme[^/]*\.js(\?|#|$)/i.test(u));
@@ -277,4 +288,3 @@
         }
     }, 1500);
 })();
-
