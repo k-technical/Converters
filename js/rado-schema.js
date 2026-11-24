@@ -158,7 +158,7 @@ function buildRadoSVG(data) {
 function drawRadoEntranceBlock(parent, entity, ns) {
     try {
         const group = document.createElementNS(ns, 'g');
-        group.setAttribute('id', entity.name || 'entrance-' + entity.id);
+        group.setAttribute('id', cleanName(entity.name, 'entrance-' + entity.id));
         parent.appendChild(group); // сначала в DOM, чтобы getBBox работал
         
         const path = document.createElementNS(ns, 'path');
@@ -228,7 +228,7 @@ function drawRadoRowBlock(parent, entity, ns) {
         
         // Создаём группу для стола
         const group = document.createElementNS(ns, 'g');
-        const groupName = entity.name || 'Стол_' + entity.id;
+        const groupName = cleanName(entity.name, 'Стол_' + entity.id);
         group.setAttribute('id', groupName);
         group.setAttribute('class', 'sector-group');
         
