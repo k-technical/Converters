@@ -1,4 +1,4 @@
-// Inti-IF: данные мест из перехвата (jl) + необязательная подложка
+// Модуль inti: данные JSON + необязательная подложка -> SVG
 const INTI_PAL = ['#0275cc', '#db0000', '#54ba00', '#fabc41', '#ff00f7', '#00b7b7', '#8a4fff', '#ff7a00'];
 let intiSectors = [];
 let intiSeats = [];
@@ -103,7 +103,7 @@ function processInti() {
     }
 }
 
-function downloadInti() { downloadCurrentResult('inti-schema.svg'); }
+function downloadInti() { downloadCurrentResult('inti.svg'); }
 
 function clearInti() {
     ['inti-src', 'inti-subtxt'].forEach(id => { document.getElementById(id).value = ''; });
