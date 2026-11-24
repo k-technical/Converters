@@ -1,3 +1,4 @@
+// Модуль afisha: JSON (levels) -> SVG
 let afishaJsonData = null;
 let afishaJsonLoaded = false;
 let afishaFileName = '';
@@ -73,13 +74,13 @@ function getAfishaStats(data) {
 function processAfisha() {
     try {
         if (!afishaJsonLoaded || !afishaJsonData) {
-            throw new Error('Загрузите билетный файл');
+            throw new Error('Загрузите файл с данными');
         }
 
         const result = buildAfishaSVG(afishaJsonData);
         
         if (!result) {
-            throw new Error('Ошибка построения схемы');
+            throw new Error('Ошибка построения SVG');
         }
         
         afishaSvgContent = result;
@@ -198,7 +199,7 @@ function clearAfisha() {
     document.getElementById('afisha-file').value = '';
     const dropzone = document.getElementById('afisha-dropzone');
     dropzone.classList.remove('active');
-    dropzone.querySelector('p').textContent = 'Загрузите билетный файл (JSON с levels)';
+    dropzone.querySelector('p').textContent = 'Загрузите файл (JSON с levels)';
     document.getElementById('afisha-file-name').style.display = 'none';
     document.getElementById('afisha-download').style.display = 'none';
     clearResult();
