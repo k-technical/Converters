@@ -1,4 +1,4 @@
-// Afi-List: JSON с places и decors -> SVG (места, прямоугольники, подписи)
+// Модуль afilist: JSON (places, decors) -> SVG
 let afilistText = '';
 
 function initAfilist() {
@@ -140,7 +140,7 @@ function processAfilist() {
     }
 }
 
-function downloadAfilist() { downloadCurrentResult('afilist-schema.svg'); }
+function downloadAfilist() { downloadCurrentResult('afilist.svg'); }
 
 function clearAfilist() {
     document.getElementById('afilist-json').value = '';
