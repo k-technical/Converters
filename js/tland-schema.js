@@ -152,6 +152,7 @@ function processTlandSVG(svgText) {
     }
     let shifted = false;
     let missingRow = 0;
+    const seatCircles = [];
 
     elements.forEach((el, idx) => {
         const section = el.getAttribute('section');
@@ -253,11 +254,14 @@ function processTlandSVG(svgText) {
             sectorGroups.set(section, []);
         }
         sectorGroups.get(section).push(circle);
+        seatCircles.push(circle);
         processedElements.push(el);
     });
 
     const lh = document.getElementById('__hidden_host');
     if (lh) lh.remove();
+    // Масштаб SVG под размер места: коэффициент, увеличение и итоговое место 12 px
+    if (seatCircles.length > 0) applySeatScale(doc, seatCircles);
     if (missingRow > 0) addWarn('У ' + missingRow + ' мест нет атрибута row (подставлен ряд 1)');
 
     // Удаляем старые элементы
@@ -295,7 +299,7 @@ function processTlandSVG(svgText) {
         // Создаём группу
         const g = doc.createElementNS('http://www.w3.org/2000/svg', 'g');
         // Делаем безопасное имя для id
-        const safeId = sectionName.replace(/[^a-zA-Z0-9_\-\u0400-\u04FF]/g, '_');
+        const safeId = cleanName(sectionName, 'sector').replace(/ /g, '_');
         g.setAttribute('id', safeId);
         g.setAttribute('data-sector', sectionName);
         g.setAttribute('class', 'sector-group');
