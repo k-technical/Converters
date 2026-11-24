@@ -1,3 +1,4 @@
+// Модуль rado: JSON -> SVG
 let radoJsonData = null;
 let radoJsonLoaded = false;
 let radoFileName = '';
@@ -92,7 +93,7 @@ function processRado() {
         const result = buildRadoSVG(radoJsonData);
         
         if (!result) {
-            throw new Error('Ошибка построения схемы');
+            throw new Error('Ошибка построения SVG');
         }
         
         showPreview(result);
