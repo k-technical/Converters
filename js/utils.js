@@ -176,3 +176,51 @@ function svgCloneKeepPosition(el) {
     }
     return clone;
 }
+
+
+// Очистка названия сектора/группы: остаются буквы, цифры, пробел и _ ; лишние знаки и двойные пробелы убираются
+function cleanName(name, fallback) {
+    const s = String(name == null ? '' : name)
+        .replace(/\s+/g, ' ')
+        .replace(/[^\p{L}\p{N} _]/gu, '')
+        .replace(/ {2,}/g, ' ')
+        .trim();
+    return s || (fallback || '');
+}
+
+// ---- Масштаб SVG под размер места: коэффициент = 15 / исходный размер места, итоговое место = 15 x 80% = 12 px ----
+const SEAT_TARGET_SIZE = 15;
+const SEAT_PERCENT = 80;
+
+function seatNum(n) {
+    return String(Math.round(n * 10000) / 10000);
+}
+
+// Масштабирует SVG через width/height (содержимое остаётся в исходных координатах),
+// уменьшает круги-места до SEAT_PERCENT % и ставит обводку 1 px после масштаба
+function applySeatScale(doc, seatElements) {
+    const sizes = seatElements.map(el => parseFloat(el.getAttribute('r')) * 2).filter(v => v > 0).sort((a, b) => a - b);
+    if (!sizes.length) throw new Error('У мест нет радиуса r, масштаб посчитать нельзя');
+    const size = sizes[Math.floor(sizes.length / 2)];
+    const k = SEAT_TARGET_SIZE / size;
+
+    const svg = doc.documentElement;
+    let box = parseViewBox(svg.getAttribute('viewBox'));
+    if (!box) {
+        const w = parseFloat(svg.getAttribute('width')), h = parseFloat(svg.getAttribute('height'));
+        if (!(w > 0 && h > 0)) throw new Error('У SVG нет viewBox и width/height, масштаб не применить');
+        box = [0, 0, w, h];
+        svg.setAttribute('viewBox', box.join(' '));
+    }
+
+    seatElements.forEach(el => {
+        const r = parseFloat(el.getAttribute('r'));
+        if (r > 0) el.setAttribute('r', seatNum(r * SEAT_PERCENT / 100));
+        el.setAttribute('stroke-width', seatNum(1 / k));
+    });
+
+    svg.setAttribute('width', seatNum(box[2] * k));
+    svg.setAttribute('height', seatNum(box[3] * k));
+
+    return 'Размер места ' + seatNum(size) + ', коэффициент ' + seatNum(k) + ', итоговое место ' + seatNum(size * k * SEAT_PERCENT / 100) + ' px';
+}
