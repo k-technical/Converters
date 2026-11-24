@@ -42,11 +42,9 @@ function formatSeatId(row, place) {
     return fmtId(row, place);
 }
 
-// Радиус мест: общее поле или значение модуля по умолчанию
+// Радиус мест: значение по умолчанию модуля
 function seatR(def) {
-    const el = document.getElementById('opt-radius');
-    const v = el ? parseFloat(el.value) : NaN;
-    return v > 0 ? v : def;
+    return def;
 }
 
 // Экранирование для вставки в строку SVG/XML
@@ -159,7 +157,7 @@ function svgAccumulatedMatrix(el) {
     return chain.reduce((m, tr) => svgMul(m, svgParseTransform(tr)), [1, 0, 0, 1, 0, 0]);
 }
 
-// Клон элемента, который переносится в другое место схемы: сохраняем его положение через matrix(...)
+// Клон элемента, который переносится в другое место SVG: сохраняем его положение через matrix(...)
 function svgCloneKeepPosition(el) {
     const clone = el.cloneNode(true);
     // Классы родительских групп (например, прозрачность группы) переносим на сам элемент
