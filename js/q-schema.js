@@ -1,3 +1,4 @@
+// Модуль q: SVG-подложка + код с данными -> SVG
 let qSvgContent = '';
 
 function initQ() {
@@ -17,7 +18,7 @@ async function readQFiles(files) {
             document.getElementById('q-code').value = t;
             names.push('код: ' + file.name);
         } else {
-            setStatus('Не удалось определить файл «' + file.name + '» (нужен SVG или JS с кодом схемы)', true);
+            setStatus('Не удалось определить файл «' + file.name + '» (нужен SVG или JS с кодом данных)', true);
         }
     }
     if (!names.length) return;
@@ -219,7 +220,7 @@ function processQ() {
         const cfgRadius = screen && screen.states && screen.states.default && parseFloat(screen.states.default.radius);
         const r = seatR(cfgRadius > 0 ? cfgRadius : 6);
 
-        // Места за пределами подложки: скорее всего подложка от другой схемы
+        // Места за пределами подложки: скорее всего подложка от других данных
         let box = vb;
         if (!box) {
             const rt = (qSvgContent.match(/<svg[^>]*>/i) || [''])[0];
@@ -228,7 +229,7 @@ function processQ() {
         }
         if (box) {
             const outside = seats.filter(s => s.x < box[0] || s.y < box[1] || s.x > box[0] + box[2] || s.y > box[1] + box[3]).length;
-            if (outside > 0) addWarn(outside + ' мест за пределами подложки (проверьте, что подложка от этой схемы)');
+            if (outside > 0) addWarn(outside + ' мест за пределами подложки (проверьте, что подложка подходит к данным)');
         }
         if (!exact) addWarn('Формат кода нестандартный: места найдены приблизительно, проверьте ряды и номера');
 
@@ -281,7 +282,7 @@ function processQ() {
             firstSeatGroup = seatsGroup;
         }
 
-        // Контуры зон (outline из настроек схемы): одинаковые контуры (например, варианты танцпола) добавляем один раз
+        // Контуры зон (поле outline): одинаковые контуры (например, варианты танцпола) добавляем один раз
         let outlineCount = 0;
         if (screen && screen.zones) {
             const byPath = new Map();
@@ -333,15 +334,15 @@ function processQ() {
     }
 }
 
-// ---- Автозагрузка по ссылке на виджет (нужен скрипт-помощник на странице виджета) ----
+// ---- Автозагрузка по ссылке (нужен скрипт-помощник) ----
 let qWin = null;
 
 function qOpenWidget() {
     const url = document.getElementById('q-link').value.trim();
-    if (!/^https:\/\//i.test(url)) { setStatus('Вставьте ссылку на страницу события (начинается с https://)', true); return; }
+    if (!/^https:\/\//i.test(url)) { setStatus('Вставьте ссылку (начинается с https://)', true); return; }
     qWin = window.open(url, '_blank');
     if (!qWin) { setStatus('Браузер заблокировал окно: разрешите всплывающие окна для этой страницы', true); return; }
-    setStatus('Жду данные от страницы… (на ней должен работать скрипт-помощник)');
+    setStatus('Жду данные… (должен работать скрипт-помощник)');
 }
 
 function qApplyBundle(d) {
@@ -371,7 +372,7 @@ async function qPasteBundle() {
 }
 
 function downloadQ() {
-    downloadCurrentResult('q-schema-result.svg');
+    downloadCurrentResult('q-result.svg');
 }
 
 function clearQ() {
