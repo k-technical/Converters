@@ -1,3 +1,4 @@
+// Модуль tcloud: очистка SVG и перенос элементов в группы
 let tcloudSvgContent = '';
 
 function initTcloud() {
@@ -28,15 +29,15 @@ function tcloudMarkLoaded(name) {
     fileName.style.display = 'block';
 }
 
-// ---- Автозагрузка по ссылке на виджет (нужен скрипт-помощник на странице виджета) ----
+// ---- Автозагрузка по ссылке (нужен скрипт-помощник) ----
 let tcloudWin = null;
 
 function tcloudOpenWidget() {
     const url = document.getElementById('tcloud-link').value.trim();
-    if (!/^https:\/\//i.test(url)) { setStatus('Вставьте ссылку на виджет (начинается с https://)', true); return; }
+    if (!/^https:\/\//i.test(url)) { setStatus('Вставьте ссылку (начинается с https://)', true); return; }
     tcloudWin = window.open(url, '_blank');
     if (!tcloudWin) { setStatus('Браузер заблокировал окно: разрешите всплывающие окна для этой страницы', true); return; }
-    setStatus('Жду данные от виджета… (на странице виджета должен работать скрипт-помощник)');
+    setStatus('Жду данные… (должен работать скрипт-помощник)');
 }
 
 function tcloudApplyBundle(d) {
@@ -45,7 +46,7 @@ function tcloudApplyBundle(d) {
         return;
     }
     tcloudSvgContent = d.svg;
-    tcloudMarkLoaded('из виджета');
+    tcloudMarkLoaded('со страницы');
     processTcloud();
 }
 
@@ -63,7 +64,7 @@ async function tcloudPasteBundle() {
         if (d.type !== 'tcloud-svg') throw new Error('not bundle');
         tcloudApplyBundle(d);
     } catch (e) {
-        setStatus('В буфере нет данных от помощника (нажмите «Копировать для конвертера» на странице виджета)', true);
+        setStatus('В буфере нет данных от помощника (нажмите «Копировать для конвертера» на странице)', true);
     }
 }
 
@@ -145,7 +146,7 @@ function processTcloud() {
             addWarn('В рядах есть ' + skippedNonCircle + ' элементов, не являющихся кругами-местами (они удалены вместе с рядом)');
         }
 
-        // Масштаб схемы под размер места и уменьшение мест
+        // Масштаб SVG под размер места и уменьшение мест
         let scaleInfo = '';
         if (seatElements.length > 0) {
             scaleInfo = tcloudApplyScale(doc, seatElements);
@@ -172,7 +173,7 @@ function tcloudNum(n) {
     return String(Math.round(n * 10000) / 10000);
 }
 
-// Коэффициент = целевой размер / исходный размер места; схема масштабируется через width/height
+// Коэффициент = целевой размер / исходный размер места; SVG масштабируется через width/height
 // (содержимое остаётся в исходных координатах), места уменьшаются до заданного процента
 function tcloudApplyScale(doc, seatElements) {
     const target = TCLOUD_SEAT_TARGET;
@@ -187,7 +188,7 @@ function tcloudApplyScale(doc, seatElements) {
     let box = parseViewBox(svg.getAttribute('viewBox'));
     if (!box) {
         const w = parseFloat(svg.getAttribute('width')), h = parseFloat(svg.getAttribute('height'));
-        if (!(w > 0 && h > 0)) throw new Error('У схемы нет viewBox и width/height, масштаб не применить');
+        if (!(w > 0 && h > 0)) throw new Error('У SVG нет viewBox и width/height, масштаб не применить');
         box = [0, 0, w, h];
         svg.setAttribute('viewBox', box.join(' '));
     }
@@ -202,12 +203,12 @@ function tcloudApplyScale(doc, seatElements) {
     svg.setAttribute('height', tcloudNum(box[3] * k));
 
     return '📐 Размер места ' + tcloudNum(size) + ' → коэффициент ' + tcloudNum(k) +
-        ', схема ' + tcloudNum(box[2] * k) + '×' + tcloudNum(box[3] * k) +
+        ', размер ' + tcloudNum(box[2] * k) + '×' + tcloudNum(box[3] * k) +
         ' px, место ' + tcloudNum(size * k * pct / 100) + ' px';
 }
 
 function downloadTcloud() {
-    downloadCurrentResult('tcloud-schema-cleaned.svg');
+    downloadCurrentResult('tcloud-cleaned.svg');
 }
 
 function clearTcloud() {
