@@ -87,7 +87,7 @@ function processInti() {
         if (document.getElementById('inti-grp').checked) {
             const g = {};
             list.forEach(s => (g[s[5]] = g[s[5]] || []).push(s));
-            body = Object.keys(g).map(k => `<g id="${esc(names[k])}">\n${g[k].map(circle).join('\n')}\n</g>`).join('\n');
+            body = Object.keys(g).map(k => `<g id="${esc(cleanName(names[k], 'sector'))}">\n${g[k].map(circle).join('\n')}\n</g>`).join('\n');
         } else {
             body = list.map(circle).join('\n');
         }
