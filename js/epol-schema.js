@@ -73,7 +73,7 @@ function processEpol() {
         let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + height + '" viewBox="0 0 ' + width + ' ' + height + '">';
         svg += '<rect width="' + width + '" height="' + height + '" fill="white"/>';
         names.forEach(name => {
-            svg += '<g id="' + esc(name) + '">';
+            svg += '<g id="' + esc(cleanName(name, 'Без названия')) + '">';
             groups[name].forEach(p => {
                 svg += '<circle id="' + esc(fmtId(p.row, p.seat, false)) + '" cx="' + (p.x + offX).toFixed(2) + '" cy="' + (p.y + offY).toFixed(2) +
                     '" r="' + r + '" fill="none" stroke="' + SEAT_STROKE + '" stroke-width="1"/>';
