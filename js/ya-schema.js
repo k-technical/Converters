@@ -1,3 +1,4 @@
+// Модуль ya: JSON (levels) + подложка -> SVG
 let yaSvgContent = '';
 
 function initYa() {
@@ -35,22 +36,22 @@ function yaMarkLoaded(names) {
     label.style.display = 'block';
 }
 
-// ---- Автозагрузка по ссылке на виджет (нужен скрипт-помощник на странице виджета) ----
+// ---- Автозагрузка по ссылке (нужен скрипт-помощник) ----
 let yaWin = null;
 
 function yaOpenWidget() {
     const url = document.getElementById('ya-link').value.trim();
-    if (!/^https:\/\//i.test(url)) { setStatus('Вставьте ссылку на виджет (начинается с https://)', true); return; }
+    if (!/^https:\/\//i.test(url)) { setStatus('Вставьте ссылку (начинается с https://)', true); return; }
     yaWin = window.open(url, '_blank');
     if (!yaWin) { setStatus('Браузер заблокировал окно: разрешите всплывающие окна для этой страницы', true); return; }
-    setStatus('Жду данные от виджета… (на странице виджета должен работать скрипт-помощник)');
+    setStatus('Жду данные… (должен работать скрипт-помощник)');
 }
 
 function yaApplyBundle(d) {
     if (!d || typeof d.json !== 'string' || typeof d.svg !== 'string') { setStatus('Неверный формат данных от помощника', true); return; }
     document.getElementById('ya-json').value = d.json;
     yaSvgContent = d.svg;
-    yaMarkLoaded(['JSON: из виджета', 'подложка: из виджета']);
+    yaMarkLoaded(['JSON: со страницы', 'подложка: со страницы']);
     processYa();
 }
 
@@ -68,7 +69,7 @@ async function yaPasteBundle() {
         if (d.type !== 'ya-schema-files') throw new Error('not bundle');
         yaApplyBundle(d);
     } catch (e) {
-        setStatus('В буфере нет данных от помощника (нажмите «Копировать для конвертера» на странице виджета)', true);
+        setStatus('В буфере нет данных от помощника (нажмите «Копировать для конвертера» на странице)', true);
     }
 }
 
@@ -146,18 +147,18 @@ function yaMerge() {
         if (wm && hm) box = [0, 0, parseFloat(wm[1]), parseFloat(hm[1])];
     }
 
-    // Места за пределами подложки: скорее всего подложка от другой схемы
+    // Места за пределами подложки: скорее всего подложка от других данных
     if (box) {
         let outside = 0;
         data.levels.forEach(l => (l.seats || []).forEach(s => {
             if (s.x_coord == null || s.y_coord == null) return;
             if (s.x_coord < box[0] || s.y_coord < box[1] || s.x_coord > box[0] + box[2] || s.y_coord > box[1] + box[3]) outside++;
         }));
-        if (outside > 0) addWarn(outside + ' мест за пределами подложки (проверьте, что подложка от этой схемы)');
+        if (outside > 0) addWarn(outside + ' мест за пределами подложки (проверьте, что подложка подходит к данным)');
     }
 
     let head = yaSvgContent.slice(0, end);
-    // Нет viewBox: добавляем, чтобы схема целиком помещалась в превью
+    // Нет viewBox: добавляем, чтобы SVG целиком помещался в превью
     if (!vbm && box && rootTag) {
         head = head.replace(rootTag, rootTag.replace(/<svg/i, '<svg viewBox="' + box.join(' ') + '"'));
     }
@@ -215,7 +216,7 @@ function rotateSVG(svgString) {
 }
 
 function downloadYa() {
-    downloadCurrentResult('ya-schema2-merged.svg');
+    downloadCurrentResult('ya-merged.svg');
 }
 
 function clearYa() {
