@@ -454,7 +454,7 @@ function buildRedkSVG() {
 
     for (let [sectorName, originalElement] of sectorToContourMap.entries()) {
         const sectorGroup = document.createElementNS(ns, 'g');
-        const groupId = encodeForId(sectorName);
+        const groupId = encodeForId(cleanName(sectorName, 'sector'));
         sectorGroup.setAttribute('id', groupId);
 
         const contourClone = svgCloneKeepPosition(originalElement);
