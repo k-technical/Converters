@@ -262,7 +262,7 @@ function processQ() {
                 if (!groups.has(key)) {
                     const g = document.createElementNS(NS, 'g');
                     // Если в подложке уже есть элемент с таким id, добавляем суффикс
-                    let gid = zoneNames[key] || key;
+                    let gid = cleanName(zoneNames[key] || key, 'zone');
                     if (existingIds.has(gid)) gid += ' места';
                     existingIds.add(gid);
                     g.setAttribute('id', gid);
@@ -306,7 +306,7 @@ function processQ() {
                 }
                 if (!target) {
                     target = document.createElementNS(NS, 'g');
-                    let gid = grouped ? (zoneNames[zoneIds[0]] || zoneIds[0]) : 'Контуры';
+                    let gid = grouped ? cleanName(zoneNames[zoneIds[0]] || zoneIds[0], 'zone') : 'Контуры';
                     if (existingIds.has(gid)) gid += grouped ? ' контур' : '';
                     if (!grouped && contoursGroup) target = contoursGroup;
                     else {
