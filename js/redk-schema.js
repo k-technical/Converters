@@ -1,3 +1,4 @@
+// Модуль redk: SVG + JSON -> SVG
 let redkSvgText = null;
 let redkJsonData = null;
 let redkSvgLoaded = false;
@@ -11,8 +12,7 @@ const REDK_STROKE_WIDTH = 1;
 
 function initRedk() {
     // Любая зона принимает один или оба файла сразу: SVG и JSON определяются по содержимому
-    setupDropzone('redk-svg-dropzone', 'redk-svg-file', readRedkFiles, true);
-    setupDropzone('redk-json-dropzone', 'redk-json-file', readRedkFiles, true);
+    setupDropzone('redk-dropzone', 'redk-file', readRedkFiles, true);
 }
 
 async function readRedkFiles(files) {
@@ -24,19 +24,15 @@ async function readRedkFiles(files) {
         else setStatus('Не удалось определить файл «' + file.name + '» (нужен SVG или JSON)', true);
     }
     updateRedkStatus();
-    // Оба файла загружены: сразу строим схему
+    // Оба файла загружены: сразу строим SVG
     if (redkSvgLoaded && redkJsonLoaded) processRedk();
 }
 
 function redkAcceptSvg(text, name) {
     redkSvgText = text;
     redkSvgLoaded = true;
-    const dropzone = document.getElementById('redk-svg-dropzone');
-    dropzone.classList.add('active');
-    dropzone.querySelector('p').textContent = name;
-    const fileName = document.getElementById('redk-svg-file-name');
-    fileName.textContent = 'Загружен: ' + name;
-    fileName.style.display = 'block';
+    redkNames.svg = name;
+    redkRefreshUi();
 }
 
 function redkAcceptJson(text, name) {
@@ -45,27 +41,36 @@ function redkAcceptJson(text, name) {
         if (!Array.isArray(data)) throw new Error('JSON должен быть массивом');
         redkJsonData = data;
         redkJsonLoaded = true;
-        const dropzone = document.getElementById('redk-json-dropzone');
-        dropzone.classList.add('active');
-        dropzone.querySelector('p').textContent = name;
-        const fileName = document.getElementById('redk-json-file-name');
-        fileName.textContent = 'Загружен: ' + name + ' (' + data.length + ' мест)';
-        fileName.style.display = 'block';
+        redkNames.json = name + ' (' + data.length + ' мест)';
+        redkRefreshUi();
     } catch (err) {
         setStatus('Ошибка JSON: ' + err.message, true);
         redkJsonLoaded = false;
     }
 }
 
-// ---- Автозагрузка по ссылке на страницу (нужен скрипт-помощник на странице виджета) ----
+// Одна зона загрузки: показываем, какие файлы уже загружены
+const redkNames = { svg: '', json: '' };
+
+function redkRefreshUi() {
+    const dropzone = document.getElementById('redk-dropzone');
+    const label = document.getElementById('redk-file-name');
+    const list = [redkNames.svg, redkNames.json].filter(Boolean);
+    dropzone.classList.toggle('active', redkSvgLoaded && redkJsonLoaded);
+    dropzone.querySelector('p').textContent = 'Загрузите schema.svg и schema.json';
+    label.textContent = list.length ? 'Загружено: ' + list.join(', ') : '';
+    label.style.display = list.length ? 'block' : 'none';
+}
+
+// ---- Автозагрузка по ссылке на страницу (нужен скрипт-помощник) ----
 let redkWin = null;
 
 function redkOpenWidget() {
     const url = document.getElementById('redk-link').value.trim();
-    if (!/^https:\/\//i.test(url)) { setStatus('Вставьте ссылку на страницу события (начинается с https://)', true); return; }
+    if (!/^https:\/\//i.test(url)) { setStatus('Вставьте ссылку (начинается с https://)', true); return; }
     redkWin = window.open(url, '_blank');
     if (!redkWin) { setStatus('Браузер заблокировал окно: разрешите всплывающие окна для этой страницы', true); return; }
-    setStatus('Жду данные от страницы… (на ней должен работать скрипт-помощник)');
+    setStatus('Жду данные… (должен работать скрипт-помощник)');
 }
 
 function redkApplyBundle(d) {
@@ -95,18 +100,10 @@ async function redkPasteBundle() {
 }
 
 function updateRedkStatus() {
-    if (redkSvgLoaded && redkJsonLoaded) {
-        setStatus('Готово: SVG + JSON (' + redkJsonData.length + ' мест). Нажмите "Построить схему"');
-    } else if (redkSvgLoaded) {
-        setStatus('SVG загружен, ожидается JSON');
-    } else if (redkJsonLoaded) {
-        setStatus('JSON загружен, ожидается SVG');
-    } else {
-        setStatus('Ожидание загрузки файлов');
-    }
+    redkRefreshUi();
 }
 
-// ---- Стили схемы: inline style, атрибуты и классы из <style> ----
+// ---- Стили: inline style, атрибуты и классы из <style> ----
 let redkCss = {};
 
 function redkParseCss(svgDoc) {
@@ -154,7 +151,7 @@ function isBackgroundRect(element) {
     const width = element.getAttribute('width');
     const height = element.getAttribute('height');
     if (width === '5500' && height === '4000') return true;
-    // Любой размер: фон равен viewBox схемы
+    // Любой размер: фон равен viewBox
     const vb = window.__redkVB;
     return !!(vb && Math.abs(parseFloat(width) - vb[2]) < 1 && Math.abs(parseFloat(height) - vb[3]) < 1);
 }
@@ -319,7 +316,7 @@ function processRedk() {
         const result = buildRedkSVG();
         
         if (!result) {
-            throw new Error('Ошибка построения схемы');
+            throw new Error('Ошибка построения SVG');
         }
         
         showPreview(result);
@@ -375,7 +372,7 @@ function buildRedkSVG() {
     const sectorToContourMap = new Map();
     const usedContours = new Set();
 
-    // Контуры секторов по имени: в схеме они подписаны data-name="SectorPreview.<сектор>"
+    // Контуры секторов по имени: контур подписан именем сектора
     const contourByName = new Map();
     collections.otherContours.forEach(el => {
         const dn = el.getAttribute('data-name') || '';
@@ -422,11 +419,11 @@ function buildRedkSVG() {
         addWarn('Нет контура у секторов (' + stats.missing.length + '): ' + stats.missing.slice(0, 8).join(', ') + (stats.missing.length > 8 ? '…' : ''));
     }
 
-    // Места за пределами схемы: скорее всего файлы от разных схем
+    // Места за пределами SVG: скорее всего файлы от разных наборов данных
     const vbox = window.__redkVB;
     if (vbox) {
         const outside = redkJsonData.filter(s => s.centerX < vbox[0] || s.centerY < vbox[1] || s.centerX > vbox[0] + vbox[2] || s.centerY > vbox[1] + vbox[3]).length;
-        if (outside > 0) addWarn(outside + ' мест за пределами схемы (проверьте, что schema.svg и schema.json от одной схемы)');
+        if (outside > 0) addWarn(outside + ' мест за пределами SVG (проверьте, что schema.svg и schema.json подходят друг к другу)');
     }
 
     // Стили из <style> нужны в итоговом файле: на них опираются заливки и обводки
@@ -536,24 +533,14 @@ function clearRedk() {
     
     document.getElementById('redk-link').value = '';
     redkWin = null;
-    document.getElementById('redk-svg-file').value = '';
-    document.getElementById('redk-json-file').value = '';
-    
-    const svgDropzone = document.getElementById('redk-svg-dropzone');
-    svgDropzone.classList.remove('active');
-    svgDropzone.querySelector('p').textContent = 'Загрузите schema.svg';
-    
-    const jsonDropzone = document.getElementById('redk-json-dropzone');
-    jsonDropzone.classList.remove('active');
-    jsonDropzone.querySelector('p').textContent = 'Загрузите schema.json';
-    
-    document.getElementById('redk-svg-file-name').style.display = 'none';
-    document.getElementById('redk-json-file-name').style.display = 'none';
+    document.getElementById('redk-file').value = '';
+    redkNames.svg = '';
+    redkNames.json = '';
+    redkRefreshUi();
     
     document.getElementById('redk-download').style.display = 'none';
     
     clearResult();
-    setStatus('Ожидание загрузки файлов');
 }
 
 // Инициализация
