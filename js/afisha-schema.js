@@ -107,8 +107,7 @@ function buildAfishaSVG(data) {
     // Функция трансформации названия зоны
     function transformZoneName(name) {
         if (!name) return 'Неизвестная зона';
-        let newName = name.replace(/[№\u2116#]/g, '');
-        newName = newName.replace(/\s+/g, ' ').trim();
+        let newName = cleanName(name.replace(/[№\u2116#]/g, ''));
         if (/^\d/.test(newName)) {
             newName = ' ' + newName;
         }
