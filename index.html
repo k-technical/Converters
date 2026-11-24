@@ -10,15 +10,7 @@
     <div class="container">
         <div class="header">
             <h1>Converters</h1>
-            <p>JSON-SVG</p>
-            <p class="hint">Автозагрузка по ссылке работает со скриптом-помощником userscripts/widget-grabber.user.js. Без него загрузите файлы вручную.</p>
-        </div>
-
-        <!-- Общие настройки -->
-        <div class="options-bar">
-            <label>Радиус мест
-                <input type="number" id="opt-radius" min="1" step="0.5" placeholder="по умолчанию">
-            </label>
+            <p class="hint">Автозагрузка по ссылке только с widget-grabber.user.js</p>
         </div>
 
         <!-- Табы -->
@@ -40,11 +32,11 @@
             <!-- Левая панель -->
             <div class="left-panel">
                 
-                <!-- Панель Ya.Schema 2 Public -->
+                <!-- Панель Ya -->
                 <div class="tab-panel" id="panel-ya">
                     <div class="input-group">
-                        <label>Автозагрузка по ссылке на виджет:</label>
-                        <input type="text" id="ya-link" placeholder="Ссылка на виджет схемы (https://...)">
+                        <label>Автозагрузка по ссылке:</label>
+                        <input type="text" id="ya-link" placeholder="Ссылка (https://...)">
                         <div style="display:flex; gap:10px;">
                             <button class="btn" onclick="yaOpenWidget()">Открыть и забрать данные</button>
                             <button class="btn" onclick="yaPasteBundle()">Вставить из буфера</button>
@@ -56,7 +48,7 @@
                         <textarea id="ya-json" placeholder='{"stage":{},"levels":[]}'></textarea>
                     </div>
                     <div class="input-group">
-                        <label>Файлы схемы (JSON и подложка, можно оба сразу, любой формат):</label>
+                        <label>Файлы (JSON и подложка, можно оба сразу, любой формат):</label>
                         <div class="file-upload" id="ya-dropzone">
                             <p>Перетащите сюда оба файла</p>
                             <small>или нажмите для выбора: JSON и подложка определяются автоматически</small>
@@ -76,8 +68,8 @@
                 <!-- Панель T-cloud -->
                 <div class="tab-panel" id="panel-tcloud" style="display:none;">
                     <div class="input-group">
-                        <label>Автозагрузка по ссылке на виджет:</label>
-                        <input type="text" id="tcloud-link" placeholder="Ссылка на виджет схемы (https://...)">
+                        <label>Автозагрузка по ссылке:</label>
+                        <input type="text" id="tcloud-link" placeholder="Ссылка (https://...)">
                         <div style="display:flex; gap:10px;">
                             <button class="btn" onclick="tcloudOpenWidget()">Открыть и забрать данные</button>
                             <button class="btn" onclick="tcloudPasteBundle()">Вставить из буфера</button>
@@ -94,11 +86,11 @@
                     <button class="btn" onclick="clearTcloud()">Очистить</button>
                 </div>
 
-                <!-- Панель Q.Schema -->
+                <!-- Панель Q-ti -->
                 <div class="tab-panel" id="panel-q" style="display:none;">
                     <div class="input-group">
-                        <label>Автозагрузка по ссылке на страницу события:</label>
-                        <input type="text" id="q-link" placeholder="Ссылка на страницу события (https://...)">
+                        <label>Автозагрузка по ссылке:</label>
+                        <input type="text" id="q-link" placeholder="Ссылка (https://...)">
                         <div style="display:flex; gap:10px;">
                             <button class="btn" onclick="qOpenWidget()">Открыть и забрать данные</button>
                             <button class="btn" onclick="qPasteBundle()">Вставить из буфера</button>
@@ -111,8 +103,8 @@
                     <input type="file" id="q-file" style="display:none;">
                     <div id="q-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
                     <div class="input-group">
-                        <label>Код с координатами (window.schemeConfig):</label>
-                        <textarea id="q-code" placeholder="Вставьте код из файла со схемой..."></textarea>
+                        <label>Код с координатами:</label>
+                        <textarea id="q-code" placeholder="Вставьте код..."></textarea>
                     </div>
                     <button class="btn primary" onclick="processQ()">Конвертировать</button>
                     <button class="btn" id="q-download" style="display:none;" onclick="downloadQ()">Скачать SVG</button>
@@ -122,8 +114,8 @@
                 <!-- Панель T-Land -->
                 <div class="tab-panel" id="panel-tland" style="display:none;">
                     <div class="input-group">
-                        <label>Автозагрузка по ссылке на страницу события:</label>
-                        <input type="text" id="tland-link" placeholder="Ссылка на страницу события (https://...)">
+                        <label>Автозагрузка по ссылке:</label>
+                        <input type="text" id="tland-link" placeholder="Ссылка (https://...)">
                         <div style="display:flex; gap:10px;">
                             <button class="btn" onclick="tlandOpenWidget()">Открыть и забрать данные</button>
                             <button class="btn" onclick="tlandPasteBundle()">Вставить из буфера</button>
@@ -135,14 +127,6 @@
                     </div>
                     <input type="file" id="tland-file" style="display:none;">
                     <div id="tland-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
-                    <div class="option">
-                        <input type="checkbox" id="tland-clean" checked>
-                        <label for="tland-clean">Очистить служебные данные (комментарии, лишние пространства имён)</label>
-                    </div>
-                    <div class="option">
-                        <input type="checkbox" id="tland-titles" checked>
-                        <label for="tland-titles">Подсказки к местам (title с сектором, рядом и местом)</label>
-                    </div>
                     <button class="btn primary" onclick="processTland()">Конвертировать</button>
                     <button class="btn" id="tland-download" style="display:none;" onclick="downloadTland()">Скачать SVG</button>
                     <button class="btn" onclick="clearTland()">Очистить</button>
@@ -151,26 +135,19 @@
                 <!-- Панель Red-K -->
                 <div class="tab-panel" id="panel-redk" style="display:none;">
                     <div class="input-group">
-                        <label>Автозагрузка по ссылке на страницу события:</label>
-                        <input type="text" id="redk-link" placeholder="Ссылка на страницу события (https://...)">
+                        <label>Автозагрузка по ссылке:</label>
+                        <input type="text" id="redk-link" placeholder="Ссылка (https://...)">
                         <div style="display:flex; gap:10px;">
                             <button class="btn" onclick="redkOpenWidget()">Открыть и забрать данные</button>
                             <button class="btn" onclick="redkPasteBundle()">Вставить из буфера</button>
                         </div>
                     </div>
-                    <div class="file-upload" id="redk-svg-dropzone">
-                        <p>Загрузите schema.svg</p>
+                    <div class="file-upload" id="redk-dropzone">
+                        <p>Загрузите schema.svg и schema.json</p>
                         <small>Нажмите для выбора</small>
                     </div>
-                    <input type="file" id="redk-svg-file" style="display:none;">
-                    <div id="redk-svg-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
-                    
-                    <div class="file-upload" id="redk-json-dropzone">
-                        <p>Загрузите schema.json</p>
-                        <small>Нажмите для выбора</small>
-                    </div>
-                    <input type="file" id="redk-json-file" style="display:none;">
-                    <div id="redk-json-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
+                    <input type="file" id="redk-file" style="display:none;">
+                    <div id="redk-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
                     
                     <button class="btn primary" onclick="processRedk()">Конвертировать</button>
                     <button class="btn" id="redk-download" style="display:none;" onclick="downloadRedk()">Скачать SVG</button>
@@ -208,13 +185,13 @@
                 <!-- Панель Inti-IF -->
                 <div class="tab-panel" id="panel-inti" style="display:none;">
                     <div class="input-group">
-                        <label>1. Адрес схемы</label>
+                        <label>1. Адрес страницы</label>
                         <div class="hint">Если адрес фрейма не тот (с параметрами после ?), вставьте в консоль код, он вернёт нужный адрес.</div>
                         <div class="code"><code id="inti-c1">location.origin+location.pathname.replace(/\/?$/,'/')</code><button class="btn" data-copy="inti-c1">Копировать код</button></div>
                     </div>
                     <div class="input-group">
                         <label>2. Данные мест</label>
-                        <div class="hint">На открытой странице схемы выполните код в консоли и вставьте результат ниже.</div>
+                        <div class="hint">На открытой странице выполните код в консоли и вставьте результат ниже.</div>
                         <div class="code"><code id="inti-c2">copy(JSON.stringify(jl.find(x=>Array.isArray(x)&&Array.isArray(x[0])&&Array.isArray(x[1])&&x[1].length>20&&Array.isArray(x[1][0])&&x[1][0].length==6&&typeof x[1][0][1]=='string'&&typeof x[1][0][3]=='number'&&typeof x[1][0][4]=='number')))</code><button class="btn" data-copy="inti-c2">Копировать код</button></div>
                         <textarea id="inti-src" placeholder='[[[77962554,"Сектор a",...]],[[414328529,"1","1",390,260,77962554],...]]'></textarea>
                     </div>
@@ -246,7 +223,7 @@
                 <!-- Панель Afi-List -->
                 <div class="tab-panel" id="panel-afilist" style="display:none;">
                     <div class="input-group">
-                        <label>JSON схемы (places, decors):</label>
+                        <label>JSON (places, decors):</label>
                         <textarea id="afilist-json" placeholder='{"places":[...],"decors":[...]}'></textarea>
                     </div>
                     <div class="input-group">
@@ -266,7 +243,7 @@
                 <!-- Панель E-Pol -->
                 <div class="tab-panel" id="panel-epol" style="display:none;">
                     <div class="file-upload" id="epol-dropzone">
-                        <p>Загрузите JSON-файл схемы</p>
+                        <p>Загрузите JSON-файл</p>
                         <small>Ожидается objects[] с type="circle", left, top, sequence_number</small>
                     </div>
                     <input type="file" id="epol-file" style="display:none;">
