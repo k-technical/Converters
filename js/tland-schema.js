@@ -1,3 +1,4 @@
+// Модуль tland: группировка элементов SVG
 let tlandSvgContent = '';
 
 function initTland() {
@@ -80,7 +81,7 @@ function tlandCleanup(doc) {
     Array.from(root.attributes).forEach(a => {
         if (a.name.startsWith('xmlns:') && a.name !== 'xmlns:xlink') root.removeAttribute(a.name);
     });
-    // defs без использования (например, шаблон-галочка для сайта)
+    // defs без использования (например, неиспользуемый шаблон)
     root.querySelectorAll('defs').forEach(defs => {
         const html = new XMLSerializer().serializeToString(root);
         const ids = Array.from(defs.querySelectorAll('[id]')).map(e => e.getAttribute('id'));
@@ -243,11 +244,9 @@ function processTlandSVG(svgText) {
         circle.setAttribute('data-section', section);
         
         // Добавляем title для тултипа
-        if (document.getElementById('tland-titles').checked) {
-            const title = doc.createElementNS('http://www.w3.org/2000/svg', 'title');
-            title.textContent = `${section} | Ряд ${row} | Место ${seat}`;
-            circle.appendChild(title);
-        }
+        const title = doc.createElementNS('http://www.w3.org/2000/svg', 'title');
+        title.textContent = `${section} | Ряд ${row} | Место ${seat}`;
+        circle.appendChild(title);
         
         // Добавляем в группу сектора
         if (!sectorGroups.has(section)) {
@@ -259,7 +258,6 @@ function processTlandSVG(svgText) {
 
     const lh = document.getElementById('__hidden_host');
     if (lh) lh.remove();
-    if (shifted) addWarn('Учтён transform групп с местами (смещение/масштаб применены к координатам кругов)');
     if (missingRow > 0) addWarn('У ' + missingRow + ' мест нет атрибута row (подставлен ряд 1)');
 
     // Удаляем старые элементы
@@ -315,7 +313,7 @@ function processTlandSVG(svgText) {
         });
     });
 
-    if (document.getElementById('tland-clean').checked) tlandCleanup(doc);
+    tlandCleanup(doc);
 
     // Сериализуем
     const serializer = new XMLSerializer();
@@ -348,15 +346,15 @@ function tlandMarkLoaded(name) {
     fileName.style.display = 'block';
 }
 
-// ---- Автозагрузка по ссылке на страницу события (нужен скрипт-помощник на странице) ----
+// ---- Автозагрузка по ссылке (нужен скрипт-помощник) ----
 let tlandWin = null;
 
 function tlandOpenWidget() {
     const url = document.getElementById('tland-link').value.trim();
-    if (!/^https:\/\//i.test(url)) { setStatus('Вставьте ссылку на страницу события (начинается с https://)', true); return; }
+    if (!/^https:\/\//i.test(url)) { setStatus('Вставьте ссылку (начинается с https://)', true); return; }
     tlandWin = window.open(url, '_blank');
     if (!tlandWin) { setStatus('Браузер заблокировал окно: разрешите всплывающие окна для этой страницы', true); return; }
-    setStatus('Жду данные от страницы… (на ней должен работать скрипт-помощник)');
+    setStatus('Жду данные… (должен работать скрипт-помощник)');
 }
 
 function tlandApplyBundle(d) {
