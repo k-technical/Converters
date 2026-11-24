@@ -35,16 +35,19 @@ function switchTab(tabName) {
 let pendingWarns = [];
 function addWarn(msg) { pendingWarns.push(msg); }
 
-// Показ статуса
+// Показ статуса: только ошибки и предупреждения (красным), успешные сообщения не показываются
 function setStatus(message, isError = false) {
     const status = document.getElementById('status');
-    let text = message;
-    if (!isError && pendingWarns.length) {
-        text += '\n⚠ ' + pendingWarns.join('\n⚠ ');
+    let text = '';
+    if (isError) {
+        text = message;
+        if (pendingWarns.length) text += '\n⚠ ' + pendingWarns.join('\n⚠ ');
+    } else if (pendingWarns.length) {
+        text = '⚠ ' + pendingWarns.join('\n⚠ ');
     }
     pendingWarns = [];
     status.textContent = text;
-    status.className = isError ? 'stats error active' : 'stats active';
+    status.className = text ? 'stats error active' : 'stats';
 }
 
 // Повторяющиеся id внутри одной группы (одинаковые id в разных секторах - нормально)
