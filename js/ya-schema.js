@@ -74,8 +74,7 @@ async function yaPasteBundle() {
 }
 
 function yaCleanGroupName(name) {
-    if (!name) return 'Без имени';
-    return name.replace(/[,&\-+()]/g, '').trim();
+    return cleanName(name, 'Без имени');
 }
 
 let yaStats = [];
