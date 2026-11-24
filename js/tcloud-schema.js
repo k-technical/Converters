@@ -142,6 +142,18 @@ function processTcloud() {
             }
         });
 
+        // Контуры секторов (shape): id Контур_1
+        doc.querySelectorAll('[id^="sector_shape"]').forEach(el => {
+            el.setAttribute('id', 'Контур_1');
+            contourCount++;
+        });
+
+        // Названия секторов без лишних знаков и двойных пробелов
+        doc.querySelectorAll('[class~="tc-map-sector"]').forEach(g => {
+            const name = cleanName(g.getAttribute('id') || g.getAttribute('data-name') || '');
+            if (name) g.setAttribute('id', name);
+        });
+
         if (skippedNonCircle > 0) {
             addWarn('В рядах есть ' + skippedNonCircle + ' элементов, не являющихся кругами-местами (они удалены вместе с рядом)');
         }
@@ -165,46 +177,9 @@ function processTcloud() {
     }
 }
 
-// Размер места после масштаба и итоговый процент (15 px × 80% = 12 px)
-const TCLOUD_SEAT_TARGET = 15;
-const TCLOUD_SEAT_PERCENT = 80;
-
-function tcloudNum(n) {
-    return String(Math.round(n * 10000) / 10000);
-}
-
-// Коэффициент = целевой размер / исходный размер места; SVG масштабируется через width/height
-// (содержимое остаётся в исходных координатах), места уменьшаются до заданного процента
+// Масштаб и размер мест: общая функция applySeatScale из utils.js
 function tcloudApplyScale(doc, seatElements) {
-    const target = TCLOUD_SEAT_TARGET;
-    const pct = TCLOUD_SEAT_PERCENT;
-
-    const sizes = seatElements.map(el => parseFloat(el.getAttribute('r')) * 2).filter(v => v > 0).sort((a, b) => a - b);
-    if (!sizes.length) throw new Error('У мест нет радиуса r, масштаб посчитать нельзя');
-    const size = sizes[Math.floor(sizes.length / 2)];
-    const k = target / size;
-
-    const svg = doc.documentElement;
-    let box = parseViewBox(svg.getAttribute('viewBox'));
-    if (!box) {
-        const w = parseFloat(svg.getAttribute('width')), h = parseFloat(svg.getAttribute('height'));
-        if (!(w > 0 && h > 0)) throw new Error('У SVG нет viewBox и width/height, масштаб не применить');
-        box = [0, 0, w, h];
-        svg.setAttribute('viewBox', box.join(' '));
-    }
-
-    seatElements.forEach(el => {
-        const r = parseFloat(el.getAttribute('r'));
-        if (r > 0) el.setAttribute('r', tcloudNum(r * pct / 100));
-        el.setAttribute('stroke-width', tcloudNum(1 / k)); // после масштаба обводка 1 px
-    });
-
-    svg.setAttribute('width', tcloudNum(box[2] * k));
-    svg.setAttribute('height', tcloudNum(box[3] * k));
-
-    return '📐 Размер места ' + tcloudNum(size) + ' → коэффициент ' + tcloudNum(k) +
-        ', размер ' + tcloudNum(box[2] * k) + '×' + tcloudNum(box[3] * k) +
-        ' px, место ' + tcloudNum(size * k * pct / 100) + ' px';
+    return applySeatScale(doc, seatElements);
 }
 
 function downloadTcloud() {
