@@ -488,5 +488,5 @@ textarea:focus {
 .params > label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #8b949e; }
 .params select, .params input[type="text"] { width: 100%; padding: 8px 10px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 13px; }
 
-#ya-link, #tcloud-link, #q-link, #tland-link, #redk-link { width: 100%; padding: 10px 12px; background: #161b22; border: 1px solid #30363d; border-radius: 8px; color: #c9d1d9; font-size: 13px; }
-#ya-link:focus, #tcloud-link:focus, #q-link:focus, #tland-link:focus, #redk-link:focus { outline: none; border-color: #58a6ff; }
+#ya-link, #tcloud-link, #q-link, #tland-link, #redk-link, #rado-link { width: 100%; padding: 10px 12px; background: #161b22; border: 1px solid #30363d; border-radius: 8px; color: #c9d1d9; font-size: 13px; }
+#ya-link:focus, #tcloud-link:focus, #q-link:focus, #tland-link:focus, #redk-link:focus, #rado-link:focus { outline: none; border-color: #58a6ff; }
