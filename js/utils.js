@@ -188,6 +188,11 @@ function cleanName(name, fallback) {
     return s || (fallback || '');
 }
 
+// Раскодирует экранирование вида _x0020_ (пробел), _x0028_ ( и т. п. в id, которое делают графические редакторы
+function decodeIdEscapes(s) {
+    return String(s == null ? '' : s).replace(/_x([0-9A-Fa-f]{4})_/g, (m, h) => String.fromCharCode(parseInt(h, 16)));
+}
+
 // ---- Масштаб SVG под размер места: коэффициент = 15 / исходный размер места, итоговое место = 15 x 80% = 12 px ----
 const SEAT_TARGET_SIZE = 15;
 const SEAT_PERCENT = 80;
