@@ -18,7 +18,7 @@
 // ==/UserScript==
 // Если данные загружаются во вложенном окне другого домена, добавьте для него отдельную строку @match.
 (function () {
-    const VERSION = '11';
+    const VERSION = '12';
     const IS_TOP = window.top === window.self;
     const RE_PUBLIC = /PUBLIC-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/;
     const cache = new Map();   // url -> текст (каждый файл запрашиваем один раз)
@@ -63,6 +63,9 @@
         const other = urls.filter(x => !SKIP.test(x) && !/^(fetch|xmlhttprequest)$/.test(types.get(x) || '')).map(strip);
         const svgs = urls.filter(x => /\.svg(\?|#|$)/i.test(x)).map(strip);
         const cnt = (t, re) => (t.match(re) || []).length;
+        const checkedJson = Array.from(cache.entries())
+            .filter(([k, t]) => t && (t[0] === '{' || t[0] === '[') && t.length > 500)
+            .map(([k, t]) => strip(k) + ' | ' + t.length + ' байт | descriptor: ' + (/"descriptor"\s*:/.test(t) ? 'да' : 'нет') + ', entities: ' + (/"entities"\s*:/.test(t) ? 'да' : 'нет'));
         const checked = Array.from(cache.entries())
             .filter(([k, t]) => /<svg[\s>]/i.test(t.slice(0, 2000)))
             .map(([k, t]) => strip(k) + ' | ' + t.length + ' байт | tc-row-no: ' + cnt(t, /tc-row-no/g) + ', tc-seat-no: ' + cnt(t, /tc-seat-no/g) +
@@ -74,6 +77,7 @@
             '\nфреймы, где работает помощник (' + fr.length + '):\n' + (fr.join('\n') || '  нет') +
             '\nзапросы fetch/XHR (' + xhr.length + ', до 70):\n' + xhr.slice(0, 70).join('\n') +
             '\nпроверенные SVG (адрес | размер | признаки):\n' + checked.slice(0, 20).join('\n') +
+            '\nпроверенные JSON (адрес | размер | descriptor, entities):\n' + checkedJson.slice(0, 20).join('\n') +
             '\nSVG-файлы (' + svgs.length + ', до 30):\n' + svgs.slice(0, 30).join('\n') +
             '\nпрочие, не js/css/шрифты (' + other.length + ', до 50):\n' + other.slice(0, 50).join('\n');
     }
@@ -150,17 +154,25 @@
     async function load(u) {
         if (cache.has(u)) return cache.get(u);
         let t = '';
-        let how = 'fetch';
+        let how = 'пустой ответ';
         try {
-            t = (await (await fetch(u)).text()).replace(/^\uFEFF/, '').trim();
+            // Запросы к своему домену делаем как страница (XHR): часть адресов отвечает только на такие запросы
+            let sameOrigin = false;
+            try { sameOrigin = new URL(u).origin === location.origin; } catch (e0) { /* не адрес */ }
+            const res = await fetch(u, sameOrigin ? { headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json, text/javascript, */*; q=0.01' } } : undefined);
+            if (res.ok === false) {
+                how = 'HTTP ' + res.status;
+            } else {
+                t = (await res.text()).replace(/^\uFEFF/, '').trim();
+            }
         } catch (e) {
             how = 'GM';
             try { t = (await gmGet(u)).replace(/^\uFEFF/, '').trim(); } catch (e2) { how = 'GM: ' + (e2 && e2.message || e2); }
         }
         if (t) { cache.set(u, t); return t; }
-        let host = u;
-        try { host = new URL(u).host; } catch (e3) { /* оставляем как есть */ }
-        addErr('не скачался ' + host + ' (' + how + ')');
+        let shown = u;
+        try { const L = new URL(u); shown = L.host + L.pathname; } catch (e3) { /* оставляем как есть */ }
+        addErr('не скачался ' + shown + ' (' + how + ')');
         const n = (fails.get(u) || 0) + 1;
         fails.set(u, n);
         if (n >= 3) cache.set(u, ''); // после трёх неудач не повторяем
