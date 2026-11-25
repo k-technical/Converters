@@ -1,22 +1,22 @@
 // ==UserScript==
 // @name         widget-grabber
-// @description  Забирает данные схемы
+// @description  Забирает данные со страницы и отдаёт их конвертеру
 // @match        https://widget.afisha.yandex.ru/*
 // @match        https://ticketscloud.com/*
+// @match        https://qtickets.ru/*
 // @match        https://*.qtickets.ru/*
-// @match        https://*.qtickets.tech/*
 // @match        https://www.ticketland.ru/*
 // @match        https://redkassa.ru/*
-/// @run-at      document-start
+// @match        https://*.redkassa.ru/*
+// @match        https://*.mosflot.ru/*
+// @run-at       document-start
 // @grant        GM.xmlHttpRequest
 // @grant        GM_xmlhttpRequest
 // @connect      cdn.qtickets.tech
 // ==/UserScript==
-// Замените домены на адреса из ваших ссылок (формат https://домен/*).
-// Для третьей строки используйте шаблон с поддоменами: https://*.домен/* (подходит для любых поддоменов).
-// Ненужные строки @match удалите. Если схема загружается во вложенном окне другого домена, добавьте для него отдельную строку @match.
+// Если данные загружаются во вложенном окне другого домена, добавьте для него отдельную строку @match.
 (function () {
-    const VERSION = '8';
+    const VERSION = '10';
     const IS_TOP = window.top === window.self;
     const RE_PUBLIC = /PUBLIC-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/;
     const cache = new Map();   // url -> текст (каждый файл запрашиваем один раз)
@@ -27,9 +27,9 @@
     const addErr = m => { if (!errors.includes(m)) errors.push(m); };
     let done = false;
     let tries = 0;
-    let state = 'Помощник работает. Откройте схему зала на странице…';
+    let state = 'Помощник работает. Откройте нужную страницу и подождите…';
 
-    // Буфер ресурсов браузера по умолчанию 250 записей, на тяжёлых страницах схема в него не попадает.
+    // Буфер ресурсов браузера по умолчанию 250 записей, на тяжёлых страницах нужные файлы в него не попадают.
     // Поэтому увеличиваем буфер и собираем адреса "вживую".
     try { performance.setResourceTimingBufferSize(5000); } catch (e) { /* не критично */ }
     try {
@@ -60,12 +60,18 @@
         const xhr = urls.filter(x => /^(fetch|xmlhttprequest)$/.test(types.get(x) || '')).map(strip);
         const other = urls.filter(x => !SKIP.test(x) && !/^(fetch|xmlhttprequest)$/.test(types.get(x) || '')).map(strip);
         const svgs = urls.filter(x => /\.svg(\?|#|$)/i.test(x)).map(strip);
+        const cnt = (t, re) => (t.match(re) || []).length;
+        const checked = Array.from(cache.entries())
+            .filter(([k, t]) => /<svg[\s>]/i.test(t.slice(0, 2000)))
+            .map(([k, t]) => strip(k) + ' | ' + t.length + ' байт | tc-row-no: ' + cnt(t, /tc-row-no/g) + ', tc-seat-no: ' + cnt(t, /tc-seat-no/g) +
+                ', circle: ' + cnt(t, /<circle/g) + ', rect: ' + cnt(t, /<rect/g) + ', path: ' + cnt(t, /<path/g) + ', section: ' + cnt(t, /\bsection="/g));
         return 'Диагностика помощника (версия ' + VERSION + ')\n' + strip(location.href) + '\nресурсов: ' + urls.length +
             '\nошибки: ' + (errors.join('; ') || 'нет') +
-            '\nсхема в DOM страницы: ' + (domHasScheme() ? 'есть' : 'нет') +
+            '\nданные в DOM страницы: ' + (domHasScheme() ? 'есть' : 'нет') +
             '\niframe на странице (' + iframes.length + '): ' + (iframes.join(', ') || 'нет') +
             '\nфреймы, где работает помощник (' + fr.length + '):\n' + (fr.join('\n') || '  нет') +
             '\nзапросы fetch/XHR (' + xhr.length + ', до 70):\n' + xhr.slice(0, 70).join('\n') +
+            '\nпроверенные SVG (адрес | размер | признаки):\n' + checked.slice(0, 20).join('\n') +
             '\nSVG-файлы (' + svgs.length + ', до 30):\n' + svgs.slice(0, 30).join('\n') +
             '\nпрочие, не js/css/шрифты (' + other.length + ', до 50):\n' + other.slice(0, 50).join('\n');
     }
@@ -181,7 +187,7 @@
     async function grab() {
         const urls = allUrls();
 
-        // 1) Ya.Schema 2 Public: два файла PUBLIC-<uuid> (JSON с levels и подложка)
+        // 1) Два файла PUBLIC-<uuid> (JSON с levels и подложка)
         const pub = urls.filter(u => RE_PUBLIC.test(u));
         if (pub.length >= 2) {
             let json = null, svg = null;
@@ -193,28 +199,39 @@
                     try {
                         const o = JSON.parse(t);
                         if (o && (Array.isArray(o.levels) || o.result)) json = t;
-                    } catch (e) { /* не JSON схемы */ }
+                    } catch (e) { /* не тот JSON */ }
                 }
             }
             if (json && svg) { send({ type: 'ya-schema-files', json: json, svg: svg }); return true; }
         }
 
-        // 1б) Red-K: файлы schema.svg и schema.json
+        // 1б) Файлы schema.svg и schema.json
         const rs = urls.find(x => /\/schema\.svg(\?|#|$)/i.test(x));
         const rj = urls.find(x => /\/schema\.json(\?|#|$)/i.test(x));
         if (rs && rj) {
             const svg = await load(rs);
             const json = await load(rj);
             if (/<svg[\s>]/i.test(svg.slice(0, 2000)) && json[0] === '[') { send({ type: 'redk-files', svg: svg, json: json }); return true; }
-            state = 'Red-K: файлы найдены, ' + (svg ? '' : 'schema.svg не скачался ') + (json ? '' : 'schema.json не скачался');
+            state = 'Файлы найдены, ' + (svg ? '' : 'schema.svg не скачался ') + (json ? '' : 'schema.json не скачался');
         }
 
-        // 2) Q.Schema: файл с кодом схемы (*.public.js / *_public.js или встроенный) + SVG подложка
+        // 1в) Файл seats-data.json (данные и подложка внутри)
+        const mf = urls.find(x => /\/seats-data\.json(\?|#|$)/i.test(x));
+        if (mf) {
+            const t = await load(mf);
+            try {
+                const o = JSON.parse(t);
+                if (o && Array.isArray(o.s) && o.canvas) { send({ type: 'mosflot-data', json: t }); return true; }
+            } catch (e) { /* не тот JSON */ }
+            state = 'Файл seats-data.json найден, ' + (t ? 'но формат другой' : 'не скачался');
+        }
+
+        // 2) Файл с кодом данных (*.public.js / *_public.js или встроенный) + SVG подложка
         let code = '';
         const jsUrl = urls.find(u => /[._]public\.js(\?|#|$)/i.test(u) || /scheme[^/]*\.js(\?|#|$)/i.test(u));
         if (jsUrl) {
             code = await load(jsUrl);
-            state = 'Q: файл кода найден, ' + (code ? 'скачан' : 'не скачался');
+            state = 'Файл кода найден, ' + (code ? 'скачан' : 'не скачался');
         }
         if (!/schemeConfig/.test(code)) {
             try {
@@ -228,52 +245,53 @@
             if (imgUrl) {
                 const svg = await load(imgUrl);
                 if (/<svg[\s>]/i.test(svg.slice(0, 2000))) { send({ type: 'q-files', js: code, svg: svg }); return true; }
-                state = 'Q: код есть, подложка ' + (svg ? 'скачана, но это не SVG' : 'не скачалась');
+                state = 'Код есть, подложка ' + (svg ? 'скачана, но это не SVG' : 'не скачалась');
             } else {
-                state = 'Q: код есть, адрес подложки не найден';
+                state = 'Код есть, адрес подложки не найден';
             }
         } else if (jsUrl && code) {
-            state = 'Q: файл кода найден, но в нём нет schemeConfig';
+            state = 'Файл кода найден, но в нём нет данных';
         }
 
-        // 3) T-cloud / T-Land: один SVG со схемой. Источники по порядку: файлы SVG, затем схема в DOM страницы, затем запросы fetch/XHR
-        const check = (text) => {
+        // 3) Один SVG с данными. Источники по порядку: файлы SVG, затем данные в DOM страницы, затем запросы fetch/XHR
+        const check = (text, url) => {
             const svg = svgFromText(text);
             if (!svg) return null;
-            if (/tc-row-no/.test(svg)) return { type: 'tcloud-svg', svg: svg };
+            // Файл карты по адресу (/map/<id>-<id>-main.svg) или по признакам в содержимом
+            if (/tc-row-no|tc-seat-no|tc-map-/.test(svg) || /\/map\/[^?#]*-main\.svg(\?|#|$)/i.test(url || '')) return { type: 'tcloud-svg', svg: svg };
             if (/hall-scheme-svg/.test(svg) || /\bsection="[^"]*"[^>]*\bseat="/.test(svg)) return { type: 'tland-svg', svg: svg };
             return null;
         };
 
         const svgs = urls.filter(u => /\.svg(\?|#|$)/i.test(u) || (!SKIP.test(u) && /(hall|scheme|schema)/i.test(u.split('?')[0]))).slice(0, 40);
         for (const u of svgs) {
-            const p = check(await load(u));
+            const p = check(await load(u), u);
             if (p) { send(p); return true; }
         }
 
-        // Схема уже нарисована на странице как inline SVG
+        // SVG уже есть на странице (inline)
         try {
             const el = Array.from(document.querySelectorAll('svg')).find(s => s.querySelector('[section][seat]'));
             if (el) { send({ type: 'tland-svg', svg: new XMLSerializer().serializeToString(el) }); return true; }
         } catch (e) { addErr('DOM: ' + (e && e.message || e)); }
 
-        // Запросы страницы к её же сайту (SVG может приходить из API, в том числе внутри JSON)
+        // Запросы страницы к её же домену (SVG может приходить из API, в том числе внутри JSON)
         const base = h => h.split('.').slice(-2).join('.');
         const sameSite = x => { try { return base(new URL(x).hostname) === base(location.hostname); } catch (e) { return false; } };
         const xhr = urls.filter(x => /^(fetch|xmlhttprequest)$/.test(types.get(x) || '') && !SKIP.test(x) && sameSite(x)).slice(0, 40);
         for (const x of xhr) {
-            const p = check(await load(x));
+            const p = check(await load(x), x);
             if (p) { send(p); return true; }
         }
         return false;
     }
 
-    // Проверка раз в 1.5 секунды до 5 минут (схема может открыться не сразу)
+    // Проверка раз в 1.5 секунды до 5 минут (данные могут появиться не сразу)
     const timer = setInterval(async () => {
         if (done) { clearInterval(timer); return; }
         if (++tries > 200) {
             clearInterval(timer);
-            if (IS_TOP) badge('Данные схемы не найдены. Нажмите «Копировать диагностику» и пришлите текст.');
+            if (IS_TOP) badge('Данные не найдены. Нажмите «Копировать диагностику» и пришлите текст.');
             return;
         }
         let ok = false;
