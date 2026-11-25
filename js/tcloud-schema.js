@@ -150,7 +150,7 @@ function processTcloud() {
 
         // Названия секторов без лишних знаков и двойных пробелов
         doc.querySelectorAll('[class~="tc-map-sector"]').forEach(g => {
-            const name = cleanName(g.getAttribute('id') || g.getAttribute('data-name') || '');
+            const name = cleanName(decodeIdEscapes(g.getAttribute('id') || g.getAttribute('data-name') || ''));
             if (name) g.setAttribute('id', name);
         });
 
