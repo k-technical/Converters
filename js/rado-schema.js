@@ -181,6 +181,10 @@ function buildRadoSVG(data) {
         }
     } catch (e) { /* оставляем стандартный viewBox */ }
 
+    // Масштаб под размер места: коэффициент, увеличение и итоговое место 12 px
+    const seatCircles = Array.from(svg.querySelectorAll('circle'));
+    if (seatCircles.length > 0) applySeatScale({ documentElement: svg }, seatCircles);
+
     const serializer = new XMLSerializer();
     const result = serializer.serializeToString(svg);
     host.remove();
