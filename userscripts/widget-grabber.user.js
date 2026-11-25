@@ -9,6 +9,8 @@
 // @match        https://redkassa.ru/*
 // @match        https://*.redkassa.ru/*
 // @match        https://*.mosflot.ru/*
+// @match        https://radario.ru/*
+// @match        https://*.radario.ru/*
 // @run-at       document-start
 // @grant        GM.xmlHttpRequest
 // @grant        GM_xmlhttpRequest
@@ -16,7 +18,7 @@
 // ==/UserScript==
 // Если данные загружаются во вложенном окне другого домена, добавьте для него отдельную строку @match.
 (function () {
-    const VERSION = '10';
+    const VERSION = '11';
     const IS_TOP = window.top === window.self;
     const RE_PUBLIC = /PUBLIC-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/;
     const cache = new Map();   // url -> текст (каждый файл запрашиваем один раз)
@@ -280,7 +282,10 @@
         const sameSite = x => { try { return base(new URL(x).hostname) === base(location.hostname); } catch (e) { return false; } };
         const xhr = urls.filter(x => /^(fetch|xmlhttprequest)$/.test(types.get(x) || '') && !SKIP.test(x) && sameSite(x)).slice(0, 40);
         for (const x of xhr) {
-            const p = check(await load(x), x);
+            const t = await load(x);
+            // JSON со схемой, где места описаны блоками (descriptor.entities)
+            if (/"descriptor"\s*:\s*\{/.test(t) && /"entities"\s*:/.test(t)) { send({ type: 'rado-json', json: t }); return true; }
+            const p = check(t, x);
             if (p) { send(p); return true; }
         }
         return false;
