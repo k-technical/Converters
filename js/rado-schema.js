@@ -4,59 +4,91 @@ let radoJsonLoaded = false;
 let radoFileName = '';
 
 function initRado() {
-    setupDropzone('rado-dropzone', 'rado-file', readRadoFile);
+    // Принимает один или два файла сразу (схему и файл события)
+    setupDropzone('rado-dropzone', 'rado-file', readRadoFiles, true);
 }
 
-function readRadoFile(file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const content = e.target.result;
-            let parsed;
-            
-            try {
-                parsed = JSON.parse(content);
-            } catch (jsonError) {
-                const jsonMatch = content.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    parsed = JSON.parse(jsonMatch[0]);
-                } else {
-                    throw new Error('Файл не содержит валидный JSON');
-                }
-            }
-            
-            if (parsed.descriptor && parsed.descriptor.entities) {
-                radoJsonData = parsed.descriptor;
-            } else if (parsed.entities) {
-                radoJsonData = parsed;
-            } else {
-                throw new Error('Не найдено поле "entities"');
-            }
-            
-            radoJsonLoaded = true;
-            radoFileName = file.name;
-            
-            const dropzone = document.getElementById('rado-dropzone');
-            dropzone.classList.add('active');
-            dropzone.querySelector('p').textContent = file.name;
-            
-            const fileName = document.getElementById('rado-file-name');
-            const stats = getRadoStats(radoJsonData);
-            fileName.textContent = 'Загружен: ' + file.name + ' (' + stats.seats + ' мест, ' + stats.zones + ' зон)';
-            fileName.style.display = 'block';
-            
-            setStatus('Данные загружены: ' + stats.seats + ' мест, ' + stats.zones + ' зон. Нажмите "Конвертировать"');
-            
-        } catch (err) {
-            setStatus('Ошибка: ' + err.message, true);
-            radoJsonLoaded = false;
-        }
-    };
-    reader.onerror = () => {
-        setStatus('Ошибка чтения файла', true);
-    };
-    reader.readAsText(file);
+// Разбор файла: схема (descriptor.entities) или файл события (подсказываем, какой файл нужен)
+function radoParse(text) {
+    let parsed;
+    try {
+        parsed = JSON.parse(text);
+    } catch (jsonError) {
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('Файл не содержит валидный JSON');
+        parsed = JSON.parse(jsonMatch[0]);
+    }
+    if (parsed.descriptor && parsed.descriptor.entities) return parsed.descriptor;
+    if (parsed.entities) return parsed;
+    const schemeId = parsed.event && parsed.event.placeSchemeId;
+    if (schemeId) {
+        throw new Error('Это файл события, в нём нет мест. Нужен файл схемы с номером ' + schemeId + ' (placeSchemeId)');
+    }
+    throw new Error('Не найдено поле "entities"');
 }
+
+function radoApply(text, name) {
+    try {
+        radoJsonData = radoParse(text);
+        radoJsonLoaded = true;
+        radoFileName = name;
+        const dropzone = document.getElementById('rado-dropzone');
+        dropzone.classList.add('active');
+        dropzone.querySelector('p').textContent = name;
+        const fileName = document.getElementById('rado-file-name');
+        const stats = getRadoStats(radoJsonData);
+        fileName.textContent = 'Загружен: ' + name + ' (' + stats.seats + ' мест)';
+        fileName.style.display = 'block';
+        return true;
+    } catch (err) {
+        setStatus('Ошибка: ' + err.message, true);
+        return false;
+    }
+}
+
+async function readRadoFiles(files) {
+    for (const file of files) {
+        const text = (await file.text()).replace(/^\uFEFF/, '').trim();
+        if (radoApply(text, file.name)) { /* схема найдена */ }
+    }
+    // Схема загружена: сразу строим SVG
+    if (radoJsonLoaded) processRado();
+}
+
+// ---- Автозагрузка по ссылке (нужен скрипт-помощник) ----
+let radoWin = null;
+
+function radoOpenWidget() {
+    const url = document.getElementById('rado-link').value.trim();
+    if (!/^https:\/\//i.test(url)) { setStatus('Вставьте ссылку (начинается с https://)', true); return; }
+    radoWin = window.open(url, '_blank');
+    if (!radoWin) { setStatus('Браузер заблокировал окно: разрешите всплывающие окна для этой страницы', true); return; }
+    setStatus('Жду данные… (должен работать скрипт-помощник)');
+}
+
+function radoApplyBundle(d) {
+    if (!d || typeof d.json !== 'string') { setStatus('Неверный формат данных от помощника', true); return; }
+    if (radoApply(d.json, 'со страницы')) processRado();
+}
+
+window.addEventListener('message', (e) => {
+    const d = e.data;
+    if (!d || d.type !== 'rado-json') return;
+    if (!radoWin || e.source !== radoWin) return; // только от окна, открытого кнопкой
+    radoApplyBundle(d);
+    try { radoWin.close(); } catch (err) { /* окно можно закрыть вручную */ }
+});
+
+async function radoPasteBundle() {
+    try {
+        const d = JSON.parse(await navigator.clipboard.readText());
+        if (d.type !== 'rado-json') throw new Error('not bundle');
+        radoApplyBundle(d);
+    } catch (e) {
+        setStatus('В буфере нет данных от помощника (нажмите «Копировать для конвертера» на странице)', true);
+    }
+}
+
 
 function getRadoStats(data) {
     let seats = 0;
@@ -235,6 +267,10 @@ function drawRadoRowBlock(parent, entity, ns) {
         const seatSize = 10;
         const seatSpacing = 14;
         const rowSpacing = 30;
+
+        // Поворот и радиус ряда пока не учитываются: предупреждаем, чтобы это не прошло незамеченным
+        if (entity.rotation) addWarn('Блок «' + groupName + '»: поворот ' + entity.rotation + '° не учитывается');
+        if (entity.radius) addWarn('Блок «' + groupName + '»: изгиб рядов (radius ' + entity.radius + ') не учитывается');
         
         const blockX = entity.x || 0;
         const blockY = entity.y || 0;
@@ -335,6 +371,8 @@ function clearRado() {
     radoFileName = '';
     
     document.getElementById('rado-file').value = '';
+    document.getElementById('rado-link').value = '';
+    radoWin = null;
     const dropzone = document.getElementById('rado-dropzone');
     dropzone.classList.remove('active');
     dropzone.querySelector('p').textContent = 'Загрузите schema.json';
