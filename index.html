@@ -10,7 +10,7 @@
     <div class="container">
         <div class="header">
             <h1>Converters</h1>
-            <p class="hint">Автозагрузка по ссылке только с widget-grabber.user.js</p>
+            <p class="hint">Автозагрузка по ссылке только с widget-grabber.user.js и widget-hook.user.js</p>
         </div>
 
         <!-- Табы -->
@@ -192,6 +192,14 @@
 
                 <!-- Панель Inti-IF -->
                 <div class="tab-panel" id="panel-inti" style="display:none;">
+                    <div class="input-group">
+                        <label>Автозагрузка по ссылке:</label>
+                        <input type="text" id="inti-link" placeholder="Ссылка (https://...)">
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn" onclick="intiOpenWidget()">Открыть и забрать данные</button>
+                            <button class="btn" onclick="intiPasteBundle()">Вставить из буфера</button>
+                        </div>
+                    </div>
                     <div class="input-group">
                         <label>1. Адрес страницы</label>
                         <div class="hint">Если адрес фрейма не тот (с параметрами после ?), вставьте в консоль код, он вернёт нужный адрес.</div>
