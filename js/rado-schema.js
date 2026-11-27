@@ -55,39 +55,13 @@ async function readRadoFiles(files) {
     if (radoJsonLoaded) processRado();
 }
 
-// ---- Автозагрузка по ссылке (нужен скрипт-помощник) ----
-let radoWin = null;
-
-function radoOpenWidget() {
-    const url = document.getElementById('rado-link').value.trim();
-    if (!/^https:\/\//i.test(url)) { setStatus('Вставьте ссылку (начинается с https://)', true); return; }
-    radoWin = window.open(url, '_blank');
-    if (!radoWin) { setStatus('Браузер заблокировал окно: разрешите всплывающие окна для этой страницы', true); return; }
-    setStatus('Жду данные… (должен работать скрипт-помощник)');
-}
 
 function radoApplyBundle(d) {
     if (!d || typeof d.json !== 'string') { setStatus('Неверный формат данных от помощника', true); return; }
     if (radoApply(d.json, 'со страницы')) processRado();
 }
 
-window.addEventListener('message', (e) => {
-    const d = e.data;
-    if (!d || d.type !== 'rado-json') return;
-    if (!radoWin || e.source !== radoWin) return; // только от окна, открытого кнопкой
-    radoApplyBundle(d);
-    try { radoWin.close(); } catch (err) { /* окно можно закрыть вручную */ }
-});
 
-async function radoPasteBundle() {
-    try {
-        const d = JSON.parse(await navigator.clipboard.readText());
-        if (d.type !== 'rado-json') throw new Error('not bundle');
-        radoApplyBundle(d);
-    } catch (e) {
-        setStatus('В буфере нет данных от помощника (нажмите «Копировать для конвертера» на странице)', true);
-    }
-}
 
 
 function getRadoStats(data) {
@@ -379,8 +353,6 @@ function clearRado() {
     radoFileName = '';
     
     document.getElementById('rado-file').value = '';
-    document.getElementById('rado-link').value = '';
-    radoWin = null;
     const dropzone = document.getElementById('rado-dropzone');
     dropzone.classList.remove('active');
     dropzone.querySelector('p').textContent = 'Загрузите schema.json';
