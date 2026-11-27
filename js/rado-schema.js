@@ -232,9 +232,6 @@ function drawRadoPathBlock(parent, entity, ns) {
     }
 }
 
-// Итоговое расстояние между центрами соседних мест в ряду, px
-const RADO_SEAT_PITCH = 20;
-
 function drawRadoRowBlock(parent, entity, ns) {
     try {
         if (!entity.rows || entity.rows.length === 0) return;
@@ -246,8 +243,7 @@ function drawRadoRowBlock(parent, entity, ns) {
         group.setAttribute('class', 'sector-group');
         
         const seatSize = 10;
-        // Расстояние между центрами мест по горизонтали после масштаба (итоговое, px)
-        const seatSpacing = RADO_SEAT_PITCH * (seatSize * 2) / SEAT_TARGET_SIZE - seatSize * 2;
+        const seatSpacing = 14;
         const rowSpacing = 30;
 
         // Поворот и радиус ряда пока не учитываются: предупреждаем, чтобы это не прошло незамеченным
