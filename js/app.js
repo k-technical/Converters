@@ -1,5 +1,5 @@
 // Состояние приложения
-let currentTab = 'ya';
+let currentTab = 'auto';
 let currentSvgResult = null;
 
 // Инициализация
@@ -7,7 +7,7 @@ function initApp() {
     document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', () => switchTab(tab.dataset.tab));
     });
-    switchTab('ya');
+    switchTab('auto');
 }
 
 // Переключение табов
