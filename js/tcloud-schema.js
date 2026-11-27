@@ -29,16 +29,6 @@ function tcloudMarkLoaded(name) {
     fileName.style.display = 'block';
 }
 
-// ---- Автозагрузка по ссылке (нужен скрипт-помощник) ----
-let tcloudWin = null;
-
-function tcloudOpenWidget() {
-    const url = document.getElementById('tcloud-link').value.trim();
-    if (!/^https:\/\//i.test(url)) { setStatus('Вставьте ссылку (начинается с https://)', true); return; }
-    tcloudWin = window.open(url, '_blank');
-    if (!tcloudWin) { setStatus('Браузер заблокировал окно: разрешите всплывающие окна для этой страницы', true); return; }
-    setStatus('Жду данные… (должен работать скрипт-помощник)');
-}
 
 function tcloudApplyBundle(d) {
     if (!d || typeof d.svg !== 'string' || !/<svg[\s>]/i.test(d.svg.slice(0, 2000))) {
@@ -50,23 +40,7 @@ function tcloudApplyBundle(d) {
     processTcloud();
 }
 
-window.addEventListener('message', (e) => {
-    const d = e.data;
-    if (!d || d.type !== 'tcloud-svg') return;
-    if (!tcloudWin || e.source !== tcloudWin) return; // только от окна, открытого кнопкой
-    tcloudApplyBundle(d);
-    try { tcloudWin.close(); } catch (err) { /* окно можно закрыть вручную */ }
-});
 
-async function tcloudPasteBundle() {
-    try {
-        const d = JSON.parse(await navigator.clipboard.readText());
-        if (d.type !== 'tcloud-svg') throw new Error('not bundle');
-        tcloudApplyBundle(d);
-    } catch (e) {
-        setStatus('В буфере нет данных от помощника (нажмите «Копировать для конвертера» на странице)', true);
-    }
-}
 
 function processTcloud() {
     try {
@@ -189,8 +163,6 @@ function downloadTcloud() {
 function clearTcloud() {
     tcloudSvgContent = '';
     document.getElementById('tcloud-file').value = '';
-    document.getElementById('tcloud-link').value = '';
-    tcloudWin = null;
     const dropzone = document.getElementById('tcloud-dropzone');
     dropzone.classList.remove('active');
     dropzone.querySelector('p').textContent = 'Перетащите SVG-файл сюда';
