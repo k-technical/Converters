@@ -15,7 +15,8 @@
 
         <!-- Табы -->
         <div class="tabs">
-            <button class="tab active" data-tab="ya">Ya</button>
+            <button class="tab active" data-tab="auto">Авто</button>
+            <button class="tab" data-tab="ya">Ya</button>
             <button class="tab" data-tab="tcloud">T-cloud</button>
             <button class="tab" data-tab="q">Q-ti</button>
             <button class="tab" data-tab="tland">T-Land</button>
@@ -32,16 +33,24 @@
             <!-- Левая панель -->
             <div class="left-panel">
                 
-                <!-- Панель Ya -->
-                <div class="tab-panel" id="panel-ya">
+                <!-- Панель Авто -->
+                <div class="tab-panel" id="panel-auto">
                     <div class="input-group">
-                        <label>Автозагрузка по ссылке:</label>
-                        <input type="text" id="ya-link" placeholder="Ссылка (https://...)">
+                        <label>Ссылка:</label>
+                        <input type="text" id="auto-link" placeholder="Ссылка (https://...)">
                         <div style="display:flex; gap:10px;">
-                            <button class="btn" onclick="yaOpenWidget()">Открыть и забрать данные</button>
-                            <button class="btn" onclick="yaPasteBundle()">Вставить из буфера</button>
+                            <button class="btn primary" onclick="autoOpen()">Открыть и забрать данные</button>
+                            <button class="btn" onclick="autoPaste()">Вставить из буфера</button>
                         </div>
                     </div>
+                    <div class="hint" id="auto-detected"></div>
+                    <div class="hint">Работает для: Ya, T-cloud, Q-ti, T-Land, Red-K, Rad-o, Inti-IF</div>
+                    <button class="btn" id="auto-download" style="display:none;" onclick="autoDownload()">Скачать SVG</button>
+                    <button class="btn" onclick="autoClear()">Очистить</button>
+                </div>
+
+                <!-- Панель Ya -->
+                <div class="tab-panel" id="panel-ya">
 
                     <div class="input-group">
                         <label>Код с местами (JSON с levels):</label>
@@ -67,14 +76,6 @@
 
                 <!-- Панель T-cloud -->
                 <div class="tab-panel" id="panel-tcloud" style="display:none;">
-                    <div class="input-group">
-                        <label>Автозагрузка по ссылке:</label>
-                        <input type="text" id="tcloud-link" placeholder="Ссылка (https://...)">
-                        <div style="display:flex; gap:10px;">
-                            <button class="btn" onclick="tcloudOpenWidget()">Открыть и забрать данные</button>
-                            <button class="btn" onclick="tcloudPasteBundle()">Вставить из буфера</button>
-                        </div>
-                    </div>
                     <div class="file-upload" id="tcloud-dropzone">
                         <p>Загрузите SVG-файл</p>
                         <small>Нажмите для выбора</small>
@@ -88,14 +89,6 @@
 
                 <!-- Панель Q-ti -->
                 <div class="tab-panel" id="panel-q" style="display:none;">
-                    <div class="input-group">
-                        <label>Автозагрузка по ссылке:</label>
-                        <input type="text" id="q-link" placeholder="Ссылка (https://...)">
-                        <div style="display:flex; gap:10px;">
-                            <button class="btn" onclick="qOpenWidget()">Открыть и забрать данные</button>
-                            <button class="btn" onclick="qPasteBundle()">Вставить из буфера</button>
-                        </div>
-                    </div>
                     <div class="file-upload" id="q-dropzone">
                         <p>Перетащите сюда SVG-подложку и файл с кодом</p>
                         <small>можно оба сразу, любой формат; или вставьте код ниже</small>
@@ -113,14 +106,6 @@
 
                 <!-- Панель T-Land -->
                 <div class="tab-panel" id="panel-tland" style="display:none;">
-                    <div class="input-group">
-                        <label>Автозагрузка по ссылке:</label>
-                        <input type="text" id="tland-link" placeholder="Ссылка (https://...)">
-                        <div style="display:flex; gap:10px;">
-                            <button class="btn" onclick="tlandOpenWidget()">Открыть и забрать данные</button>
-                            <button class="btn" onclick="tlandPasteBundle()">Вставить из буфера</button>
-                        </div>
-                    </div>
                     <div class="file-upload" id="tland-dropzone">
                         <p>Загрузите SVG-файл</p>
                          <small>Нажмите для выбора</small>
@@ -134,14 +119,6 @@
 
                 <!-- Панель Red-K -->
                 <div class="tab-panel" id="panel-redk" style="display:none;">
-                    <div class="input-group">
-                        <label>Автозагрузка по ссылке:</label>
-                        <input type="text" id="redk-link" placeholder="Ссылка (https://...)">
-                        <div style="display:flex; gap:10px;">
-                            <button class="btn" onclick="redkOpenWidget()">Открыть и забрать данные</button>
-                            <button class="btn" onclick="redkPasteBundle()">Вставить из буфера</button>
-                        </div>
-                    </div>
                     <div class="file-upload" id="redk-dropzone">
                         <p>Загрузите schema.svg и schema.json</p>
                         <small>Нажмите для выбора</small>
@@ -156,14 +133,6 @@
 
                 <!-- Панель Rad-o -->
                 <div class="tab-panel" id="panel-rado" style="display:none;">
-                    <div class="input-group">
-                        <label>Автозагрузка по ссылке:</label>
-                        <input type="text" id="rado-link" placeholder="Ссылка (https://...)">
-                        <div style="display:flex; gap:10px;">
-                            <button class="btn" onclick="radoOpenWidget()">Открыть и забрать данные</button>
-                            <button class="btn" onclick="radoPasteBundle()">Вставить из буфера</button>
-                        </div>
-                    </div>
                     <div class="file-upload" id="rado-dropzone">
                         <p>Загрузите файл схемы (с полем entities)</p>
                         <small>Нажмите для выбора</small>
@@ -192,14 +161,6 @@
 
                 <!-- Панель Inti-IF -->
                 <div class="tab-panel" id="panel-inti" style="display:none;">
-                    <div class="input-group">
-                        <label>Автозагрузка по ссылке:</label>
-                        <input type="text" id="inti-link" placeholder="Ссылка (https://...)">
-                        <div style="display:flex; gap:10px;">
-                            <button class="btn" onclick="intiOpenWidget()">Открыть и забрать данные</button>
-                            <button class="btn" onclick="intiPasteBundle()">Вставить из буфера</button>
-                        </div>
-                    </div>
                     <div class="input-group">
                         <label>1. Адрес страницы</label>
                         <div class="hint">Если адрес фрейма не тот (с параметрами после ?), вставьте в консоль код, он вернёт нужный адрес.</div>
@@ -296,6 +257,7 @@
     <script src="js/inti-schema.js"></script>
     <script src="js/afilist-schema.js"></script>
     <script src="js/epol-schema.js"></script>
+    <script src="js/auto.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
