@@ -490,3 +490,8 @@ textarea:focus {
 
 #auto-link { width: 100%; padding: 10px 12px; background: #161b22; border: 1px solid #30363d; border-radius: 8px; color: #c9d1d9; font-size: 13px; }
 #auto-link:focus { outline: none; border-color: #58a6ff; }
+
+/* Ручная загрузка: вложенные панели конвертеров */
+#panel-manual .tab-panel { height: auto; overflow: visible; padding-right: 0; }
+#manual-select { width: 100%; padding: 10px 12px; background: #161b22; border: 1px solid #30363d; border-radius: 8px; color: #c9d1d9; font-size: 13px; }
+#manual-select:focus { outline: none; border-color: #58a6ff; }
