@@ -108,24 +108,12 @@ function downloadInti() { downloadCurrentResult('inti.svg'); }
 function clearInti() {
     ['inti-src', 'inti-subtxt'].forEach(id => { document.getElementById(id).value = ''; });
     document.getElementById('inti-file').value = '';
-    document.getElementById('inti-link').value = '';
-    intiWin = null;
     document.getElementById('inti-subinfo').textContent = '';
     document.getElementById('inti-sec').innerHTML = '<option value="">все</option>';
     intiSub = null; intiSectors = []; intiSeats = [];
     clearResult();
 }
 
-// ---- Автозагрузка по ссылке (нужен скрипт-помощник widget-hook.user.js) ----
-let intiWin = null;
-
-function intiOpenWidget() {
-    const url = document.getElementById('inti-link').value.trim();
-    if (!/^https:\/\//i.test(url)) { setStatus('Вставьте ссылку (начинается с https://)', true); return; }
-    intiWin = window.open(url, '_blank');
-    if (!intiWin) { setStatus('Браузер заблокировал окно: разрешите всплывающие окна для этой страницы', true); return; }
-    setStatus('Жду данные… (должен работать скрипт-помощник)');
-}
 
 function intiApplyBundle(d) {
     if (!d || typeof d.json !== 'string') { setStatus('Неверный формат данных от помощника', true); return; }
@@ -138,22 +126,6 @@ function intiApplyBundle(d) {
     processInti();
 }
 
-window.addEventListener('message', (e) => {
-    const d = e.data;
-    if (!d || d.type !== 'inti-data') return;
-    if (!intiWin || e.source !== intiWin) return; // только от окна, открытого кнопкой
-    intiApplyBundle(d);
-    try { intiWin.close(); } catch (err) { /* окно можно закрыть вручную */ }
-});
 
-async function intiPasteBundle() {
-    try {
-        const d = JSON.parse(await navigator.clipboard.readText());
-        if (d.type !== 'inti-data') throw new Error('not bundle');
-        intiApplyBundle(d);
-    } catch (e) {
-        setStatus('В буфере нет данных от помощника (нажмите «Копировать для конвертера» на странице)', true);
-    }
-}
 
 document.addEventListener('DOMContentLoaded', initInti);
