@@ -73,12 +73,8 @@ function processInti() {
         if (intiSub) [x0, y0, w, h] = intiSub.vb;
 
         const useColor = document.getElementById('inti-col').checked;
-        const seen = new Set();
-        let dup = 0;
         const circle = s => {
             const id = fmt.replace(/\{r\}/g, s[1]).replace(/\{s\}/g, s[2]).replace(/\{sec\}/g, names[s[5]]);
-            if (seen.has(id)) dup++;
-            seen.add(id);
             const c = useColor ? INTI_PAL[idx[s[5]] % INTI_PAL.length] : '#0275cc';
             return `<circle id="${esc(id)}" cx="${s[3]}" cy="${s[4]}" r="${r}" fill="${c}"/>`;
         };
@@ -94,7 +90,6 @@ function processInti() {
         const back = intiSub ? `<g id="Подложка">${intiSub.inner}</g>\n` : '';
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x0} ${y0} ${w} ${h}">\n${back}<g id="Места">\n${body}\n</g>\n</svg>`;
 
-        if (dup) addWarn('Выберите один сектор или добавьте {sec} в формат id');
         showPreview(svg);
         setStatus('✓ Мест: ' + list.length);
         document.getElementById('inti-download').style.display = 'block';
