@@ -40,6 +40,8 @@ window.addEventListener('message', (e) => {
     const d = e.data;
     if (!d || typeof d.type !== 'string') return;
     if (!autoWin || e.source !== autoWin) return; // только от окна, открытого кнопкой
+    // Страница может сама слать сообщения своему окну-родителю: их пропускаем, ждём данные помощника
+    if (!AUTO_HANDLERS[d.type] && d.type !== 'mosflot-data') return;
     autoDispatch(d);
     try { autoWin.close(); } catch (err) { /* окно можно закрыть вручную */ }
 });
