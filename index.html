@@ -16,14 +16,8 @@
         <!-- Табы -->
         <div class="tabs">
             <button class="tab active" data-tab="auto">Авто</button>
-            <button class="tab" data-tab="ya">Ya</button>
-            <button class="tab" data-tab="tcloud">T-cloud</button>
-            <button class="tab" data-tab="q">Q-ti</button>
-            <button class="tab" data-tab="tland">T-Land</button>
-            <button class="tab" data-tab="redk">Red-K</button>
-            <button class="tab" data-tab="rado">Rad-o</button>
+            <button class="tab" data-tab="manual">Загрузка файлов вручную</button>
             <button class="tab" data-tab="afisha">Afisha</button>
-            <button class="tab" data-tab="inti">Inti-IF</button>
             <button class="tab" data-tab="afilist">Afi-List</button>
             <button class="tab" data-tab="epol">E-Pol</button>
         </div>
@@ -49,8 +43,14 @@
                     <button class="btn" onclick="autoClear()">Очистить</button>
                 </div>
 
-                <!-- Панель Ya -->
-                <div class="tab-panel" id="panel-ya">
+                <!-- Панель Загрузка файлов вручную -->
+                <div class="tab-panel" id="panel-manual" style="display:none;">
+                    <div class="input-group">
+                        <label>Конвертер:</label>
+                        <select id="manual-select" onchange="manualSelect(this.value)"><option value="ya">Ya</option><option value="tcloud">T-cloud</option><option value="q">Q-ti</option><option value="tland">T-Land</option><option value="redk">Red-K</option><option value="rado">Rad-o</option><option value="inti">Inti-IF</option></select>
+                    </div>
+                    <!-- Панель Ya -->
+                <div class="tab-panel" id="panel-ya" style="display:none;">
 
                     <div class="input-group">
                         <label>Код с местами (JSON с levels):</label>
@@ -145,20 +145,6 @@
                     <button class="btn" onclick="clearRado()">Очистить</button>
                 </div>
 
-                <!-- Панель Afisha -->
-                <div class="tab-panel" id="panel-afisha" style="display:none;">
-                    <div class="file-upload" id="afisha-dropzone">
-                        <p>Загрузите JSON с levels</p>
-                        <small>Нажмите для выбора</small>
-                    </div>
-                    <input type="file" id="afisha-file" style="display:none;">
-                    <div id="afisha-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
-                    
-                    <button class="btn primary" onclick="processAfisha()">Конвертировать</button>
-                    <button class="btn" id="afisha-download" style="display:none;" onclick="downloadAfisha()">Скачать SVG</button>
-                    <button class="btn" onclick="clearAfisha()">Очистить</button>
-                </div>
-
                 <!-- Панель Inti-IF -->
                 <div class="tab-panel" id="panel-inti" style="display:none;">
                     <div class="input-group">
@@ -197,6 +183,23 @@
                     <button class="btn" onclick="clearInti()">Очистить</button>
                 </div>
 
+                
+                </div>
+
+                <!-- Панель Afisha -->
+                <div class="tab-panel" id="panel-afisha" style="display:none;">
+                    <div class="file-upload" id="afisha-dropzone">
+                        <p>Загрузите JSON с levels</p>
+                        <small>Нажмите для выбора</small>
+                    </div>
+                    <input type="file" id="afisha-file" style="display:none;">
+                    <div id="afisha-file-name" style="display:none; padding: 8px; color: #3fb950; font-size: 13px;"></div>
+                    
+                    <button class="btn primary" onclick="processAfisha()">Конвертировать</button>
+                    <button class="btn" id="afisha-download" style="display:none;" onclick="downloadAfisha()">Скачать SVG</button>
+                    <button class="btn" onclick="clearAfisha()">Очистить</button>
+                </div>
+
                 <!-- Панель Afi-List -->
                 <div class="tab-panel" id="panel-afilist" style="display:none;">
                     <div class="input-group">
@@ -229,6 +232,7 @@
                     <button class="btn" id="epol-download" style="display:none;" onclick="downloadEpol()">Скачать SVG</button>
                     <button class="btn" onclick="clearEpol()">Очистить</button>
                 </div>
+
 
             </div>
             <!-- Конец left-panel -->
