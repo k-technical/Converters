@@ -11,6 +11,21 @@ function initApp() {
 }
 
 // Переключение табов
+// Ручная загрузка файлов: один из конвертеров выбирается в списке
+const MANUAL_PANELS = ['ya', 'tcloud', 'q', 'tland', 'redk', 'rado', 'inti'];
+
+function manualShow(name) {
+    MANUAL_PANELS.forEach(n => {
+        const p = document.getElementById('panel-' + n);
+        if (p) p.style.display = (n === name) ? 'flex' : 'none';
+    });
+}
+
+function manualSelect(name) {
+    manualShow(name);
+    clearResult();
+}
+
 function switchTab(tabName) {
     currentTab = tabName;
     
@@ -26,6 +41,9 @@ function switchTab(tabName) {
     if (targetPanel) {
         targetPanel.style.display = 'flex';
     }
+
+    // Вкладка ручной загрузки: показываем выбранный конвертер
+    if (tabName === 'manual') manualShow(document.getElementById('manual-select').value);
     
     clearResult();
     // Убираем автоматическое сообщение при переключении
