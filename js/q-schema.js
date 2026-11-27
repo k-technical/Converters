@@ -334,16 +334,6 @@ function processQ() {
     }
 }
 
-// ---- Автозагрузка по ссылке (нужен скрипт-помощник) ----
-let qWin = null;
-
-function qOpenWidget() {
-    const url = document.getElementById('q-link').value.trim();
-    if (!/^https:\/\//i.test(url)) { setStatus('Вставьте ссылку (начинается с https://)', true); return; }
-    qWin = window.open(url, '_blank');
-    if (!qWin) { setStatus('Браузер заблокировал окно: разрешите всплывающие окна для этой страницы', true); return; }
-    setStatus('Жду данные… (должен работать скрипт-помощник)');
-}
 
 function qApplyBundle(d) {
     if (!d || typeof d.js !== 'string' || typeof d.svg !== 'string') { setStatus('Неверный формат данных от помощника', true); return; }
@@ -353,23 +343,7 @@ function qApplyBundle(d) {
     processQ();
 }
 
-window.addEventListener('message', (e) => {
-    const d = e.data;
-    if (!d || d.type !== 'q-files') return;
-    if (!qWin || e.source !== qWin) return; // только от окна, открытого кнопкой
-    qApplyBundle(d);
-    try { qWin.close(); } catch (err) { /* окно можно закрыть вручную */ }
-});
 
-async function qPasteBundle() {
-    try {
-        const d = JSON.parse(await navigator.clipboard.readText());
-        if (d.type !== 'q-files') throw new Error('not bundle');
-        qApplyBundle(d);
-    } catch (e) {
-        setStatus('В буфере нет данных от помощника (нажмите «Копировать для конвертера» на странице)', true);
-    }
-}
 
 function downloadQ() {
     downloadCurrentResult('q-result.svg');
@@ -378,8 +352,6 @@ function downloadQ() {
 function clearQ() {
     document.getElementById('q-code').value = '';
     document.getElementById('q-file').value = '';
-    document.getElementById('q-link').value = '';
-    qWin = null;
     qSvgContent = '';
     const dropzone = document.getElementById('q-dropzone');
     dropzone.classList.remove('active');
