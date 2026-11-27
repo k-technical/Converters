@@ -62,16 +62,6 @@ function redkRefreshUi() {
     label.style.display = list.length ? 'block' : 'none';
 }
 
-// ---- Автозагрузка по ссылке на страницу (нужен скрипт-помощник) ----
-let redkWin = null;
-
-function redkOpenWidget() {
-    const url = document.getElementById('redk-link').value.trim();
-    if (!/^https:\/\//i.test(url)) { setStatus('Вставьте ссылку (начинается с https://)', true); return; }
-    redkWin = window.open(url, '_blank');
-    if (!redkWin) { setStatus('Браузер заблокировал окно: разрешите всплывающие окна для этой страницы', true); return; }
-    setStatus('Жду данные… (должен работать скрипт-помощник)');
-}
 
 function redkApplyBundle(d) {
     if (!d || typeof d.svg !== 'string' || typeof d.json !== 'string') { setStatus('Неверный формат данных от помощника', true); return; }
@@ -81,23 +71,7 @@ function redkApplyBundle(d) {
     if (redkSvgLoaded && redkJsonLoaded) processRedk();
 }
 
-window.addEventListener('message', (e) => {
-    const d = e.data;
-    if (!d || d.type !== 'redk-files') return;
-    if (!redkWin || e.source !== redkWin) return; // только от окна, открытого кнопкой
-    redkApplyBundle(d);
-    try { redkWin.close(); } catch (err) { /* окно можно закрыть вручную */ }
-});
 
-async function redkPasteBundle() {
-    try {
-        const d = JSON.parse(await navigator.clipboard.readText());
-        if (d.type !== 'redk-files') throw new Error('not bundle');
-        redkApplyBundle(d);
-    } catch (e) {
-        setStatus('В буфере нет данных от помощника (нажмите «Копировать для конвертера» на странице)', true);
-    }
-}
 
 function updateRedkStatus() {
     redkRefreshUi();
@@ -530,9 +504,6 @@ function clearRedk() {
     redkJsonData = null;
     redkSvgLoaded = false;
     redkJsonLoaded = false;
-    
-    document.getElementById('redk-link').value = '';
-    redkWin = null;
     document.getElementById('redk-file').value = '';
     redkNames.svg = '';
     redkNames.json = '';
