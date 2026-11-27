@@ -10,13 +10,13 @@
     <div class="container">
         <div class="header">
             <h1>Converters</h1>
-            <p class="hint">Автозагрузка по ссылке только с widget-grabber.user.js и widget-hook.user.js</p>
+            <p class="hint">Autoload by link only with widget-grabber.user.js and widget-hook.user.js</p>
         </div>
 
         <!-- Табы -->
         <div class="tabs">
-            <button class="tab active" data-tab="auto">Авто</button>
-            <button class="tab" data-tab="manual">Загрузка файлов вручную</button>
+            <button class="tab active" data-tab="auto">Auto</button>
+            <button class="tab" data-tab="manual">Manual</button>
             <button class="tab" data-tab="afisha">Afisha</button>
             <button class="tab" data-tab="afilist">Afi-List</button>
             <button class="tab" data-tab="epol">E-Pol</button>
@@ -27,13 +27,13 @@
             <!-- Левая панель -->
             <div class="left-panel">
                 
-                <!-- Панель Авто -->
+                <!-- Панель Auto -->
                 <div class="tab-panel" id="panel-auto">
                     <div class="input-group">
                         <label>Ссылка:</label>
                         <input type="text" id="auto-link" placeholder="Ссылка (https://...)">
                         <div style="display:flex; gap:10px;">
-                            <button class="btn primary" onclick="autoOpen()">Открыть и забрать данные</button>
+                            <button class="btn primary" onclick="autoOpen()">Загрузить схему</button>
                             <button class="btn" onclick="autoPaste()">Вставить из буфера</button>
                         </div>
                     </div>
@@ -43,7 +43,7 @@
                     <button class="btn" onclick="autoClear()">Очистить</button>
                 </div>
 
-                <!-- Панель Загрузка файлов вручную -->
+                <!-- Панель Manual -->
                 <div class="tab-panel" id="panel-manual" style="display:none;">
                     <div class="input-group">
                         <label>Конвертер:</label>
