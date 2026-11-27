@@ -350,16 +350,6 @@ function tlandMarkLoaded(name) {
     fileName.style.display = 'block';
 }
 
-// ---- Автозагрузка по ссылке (нужен скрипт-помощник) ----
-let tlandWin = null;
-
-function tlandOpenWidget() {
-    const url = document.getElementById('tland-link').value.trim();
-    if (!/^https:\/\//i.test(url)) { setStatus('Вставьте ссылку (начинается с https://)', true); return; }
-    tlandWin = window.open(url, '_blank');
-    if (!tlandWin) { setStatus('Браузер заблокировал окно: разрешите всплывающие окна для этой страницы', true); return; }
-    setStatus('Жду данные… (должен работать скрипт-помощник)');
-}
 
 function tlandApplyBundle(d) {
     if (!d || typeof d.svg !== 'string' || !/<svg[\s>]/i.test(d.svg.slice(0, 2000))) {
@@ -371,23 +361,7 @@ function tlandApplyBundle(d) {
     processTland();
 }
 
-window.addEventListener('message', (e) => {
-    const d = e.data;
-    if (!d || d.type !== 'tland-svg') return;
-    if (!tlandWin || e.source !== tlandWin) return; // только от окна, открытого кнопкой
-    tlandApplyBundle(d);
-    try { tlandWin.close(); } catch (err) { /* окно можно закрыть вручную */ }
-});
 
-async function tlandPasteBundle() {
-    try {
-        const d = JSON.parse(await navigator.clipboard.readText());
-        if (d.type !== 'tland-svg') throw new Error('not bundle');
-        tlandApplyBundle(d);
-    } catch (e) {
-        setStatus('В буфере нет данных от помощника (нажмите «Копировать для конвертера» на странице)', true);
-    }
-}
 
 function downloadTland() {
     downloadCurrentResult('tland-grouped.svg');
@@ -396,8 +370,6 @@ function downloadTland() {
 function clearTland() {
     tlandSvgContent = '';
     document.getElementById('tland-file').value = '';
-    document.getElementById('tland-link').value = '';
-    tlandWin = null;
     const dropzone = document.getElementById('tland-dropzone');
     dropzone.classList.remove('active');
     dropzone.querySelector('p').textContent = 'Перетащите SVG-файл сюда';
