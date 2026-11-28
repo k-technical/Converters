@@ -504,3 +504,5 @@ textarea:focus {
 .ocr-row img { max-height: 48px; max-width: 160px; background: #fff; border-radius: 4px; }
 .ocr-row input { flex: 1; padding: 8px 10px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 14px; }
 #panel-ocr .params input[type="color"] { height: 34px; padding: 2px; }
+.ocr-row input.empty { border-color: #f85149; }
+.ocr-row img { cursor: pointer; }
