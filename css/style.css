@@ -495,3 +495,12 @@ textarea:focus {
 #panel-manual .tab-panel { height: auto; overflow: visible; padding-right: 0; }
 #manual-select { width: 100%; padding: 10px 12px; background: #161b22; border: 1px solid #30363d; border-radius: 8px; color: #c9d1d9; font-size: 13px; }
 #manual-select:focus { outline: none; border-color: #58a6ff; }
+
+/* OCR */
+#ocr-group { width: 100%; padding: 10px 12px; background: #161b22; border: 1px solid #30363d; border-radius: 8px; color: #c9d1d9; font-size: 13px; }
+#ocr-list { display: flex; flex-direction: column; gap: 6px; max-height: 360px; overflow-y: auto; }
+.ocr-row { display: flex; align-items: center; gap: 10px; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 6px 10px; }
+.ocr-row .ocr-num { color: #8b949e; font-size: 12px; min-width: 28px; }
+.ocr-row img { max-height: 48px; max-width: 160px; background: #fff; border-radius: 4px; }
+.ocr-row input { flex: 1; padding: 8px 10px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 14px; }
+#panel-ocr .params input[type="color"] { height: 34px; padding: 2px; }
