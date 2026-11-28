@@ -116,6 +116,7 @@ function showPreview(svgContent) {
     const container = document.getElementById('previewContainer');
     container.innerHTML = sanitizeForPreview(svgContent);
     currentSvgResult = svgContent;
+    window.lastResultSvg = svgContent; // последний результат (для вкладки OCR)
     const dup = findDuplicateIds(svgContent);
     if (dup > 0) addWarn('Повторяющихся id внутри групп: ' + dup);
 }
