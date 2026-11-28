@@ -17,6 +17,7 @@
         <div class="tabs">
             <button class="tab active" data-tab="auto">Auto</button>
             <button class="tab" data-tab="manual">Manual</button>
+            <button class="tab" data-tab="ocr">OCR</button>
             <button class="tab" data-tab="afisha">Afisha</button>
             <button class="tab" data-tab="afilist">Afi-List</button>
             <button class="tab" data-tab="epol">E-Pol</button>
@@ -186,6 +187,34 @@
                 
                 </div>
 
+                <!-- Панель OCR -->
+                <div class="tab-panel" id="panel-ocr" style="display:none;">
+                    <div class="file-upload" id="ocr-dropzone">
+                        <p>Перетащите SVG со схемой</p>
+                        <small>Нажмите для выбора</small>
+                    </div>
+                    <input type="file" id="ocr-file" style="display:none;">
+                    <button class="btn" onclick="ocrUseLast()">Взять последний результат конвертера</button>
+                    <div class="hint" id="ocr-info"></div>
+                    <div class="input-group">
+                        <label>Группа с надписями (контуры букв):</label>
+                        <select id="ocr-group"></select>
+                    </div>
+                    <div class="params">
+                        <label>Шрифт<input type="text" id="ocr-font" value="Arial, sans-serif"></label>
+                        <label>Размер, px<input type="number" id="ocr-size" value="12" min="6" max="200" step="1"></label>
+                        <label>Цвет<input type="color" id="ocr-color" value="#868686"></label>
+                        <label class="chk"><input type="checkbox" id="ocr-autosize"> Размер по высоте надписи</label>
+                        <label class="chk"><input type="checkbox" id="ocr-sentence" checked> Первая буква заглавная, остальные строчные</label>
+                    </div>
+                    <button class="btn primary" onclick="ocrStart()">Распознать</button>
+                    <div class="hint" id="ocr-progress"></div>
+                    <div id="ocr-list"></div>
+                    <button class="btn" id="ocr-apply" style="display:none;" onclick="ocrApply()">Применить</button>
+                    <button class="btn" id="ocr-download" style="display:none;" onclick="ocrDownload()">Скачать SVG</button>
+                    <button class="btn" onclick="ocrClear()">Очистить</button>
+                </div>
+
                 <!-- Панель Afisha -->
                 <div class="tab-panel" id="panel-afisha" style="display:none;">
                     <div class="file-upload" id="afisha-dropzone">
@@ -261,6 +290,7 @@
     <script src="js/inti-schema.js"></script>
     <script src="js/afilist-schema.js"></script>
     <script src="js/epol-schema.js"></script>
+    <script src="js/ocr.js"></script>
     <script src="js/auto.js"></script>
     <script src="js/app.js"></script>
 </body>
