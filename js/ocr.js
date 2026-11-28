@@ -3,6 +3,8 @@ let ocrSource = '';        // исходный текст SVG
 let ocrGroups = [];        // все группы документа (в порядке querySelectorAll('g'))
 let ocrItems = [];         // найденные надписи
 let ocrBusy = false;
+let ocrFocusId = null;     // надпись, выбранная в списке (подсвечивается на превью)
+let ocrLiveTimer = null;
 let ocrCropDoc = null;     // разобранный документ для картинок надписей (разбираем один раз за запуск)
 
 const OCR_ENGINE_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
@@ -269,6 +271,47 @@ function ocrToSentenceCase(t) {
     return t ? t.charAt(0).toUpperCase() + t.slice(1).toLowerCase() : t;
 }
 
+// Рамка вокруг выбранной надписи на превью (в скачиваемый файл не попадает)
+function ocrDrawHighlight() {
+    const svg = document.querySelector('#previewContainer svg');
+    if (!svg) return;
+    const old = svg.querySelector('#ocr-hl');
+    if (old) old.remove();
+    const item = ocrItems.find(it => it.id === ocrFocusId);
+    if (!item) return;
+    const pad = Math.max(2, Math.min(item.bbox.width, item.bbox.height) * 0.3);
+    const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    r.setAttribute('id', 'ocr-hl');
+    r.setAttribute('x', item.bbox.x - pad);
+    r.setAttribute('y', item.bbox.y - pad);
+    r.setAttribute('width', item.bbox.width + pad * 2);
+    r.setAttribute('height', item.bbox.height + pad * 2);
+    r.setAttribute('fill', 'none');
+    r.setAttribute('stroke', '#ff3b30');
+    r.setAttribute('stroke-width', '2');
+    r.setAttribute('vector-effect', 'non-scaling-stroke');
+    svg.appendChild(r);
+}
+
+// Превью с применёнными текстами: обновляется при правке полей
+function ocrLivePreview() {
+    if (!ocrItems.length) return;
+    try {
+        const res = ocrBuildResult();
+        if (!res.replaced) return;
+        showPreview(res.svg);
+        document.getElementById('ocr-download').style.display = 'block';
+        ocrDrawHighlight();
+    } catch (e) {
+        handleError(e);
+    }
+}
+
+function ocrScheduleLive() {
+    clearTimeout(ocrLiveTimer);
+    ocrLiveTimer = setTimeout(ocrLivePreview, 350);
+}
+
 function ocrProgress(text) {
     document.getElementById('ocr-progress').textContent = text;
 }
@@ -290,8 +333,15 @@ function ocrRenderList() {
         const input = document.createElement('input');
         input.type = 'text';
         input.id = 'input-' + item.id;
-        input.placeholder = 'Введите текст вручную';
+        input.placeholder = 'Не распознано: введите текст';
         input.value = '';
+        input.className = 'empty';
+        input.addEventListener('input', () => {
+            input.classList.toggle('empty', !input.value.trim());
+            ocrScheduleLive();
+        });
+        input.addEventListener('focus', () => { ocrFocusId = item.id; ocrDrawHighlight(); });
+        img.addEventListener('click', () => input.focus());
         row.appendChild(num);
         row.appendChild(img);
         row.appendChild(input);
@@ -364,8 +414,12 @@ async function ocrStart() {
         await Promise.all(workers.map(w => w.terminate().catch(() => {})));
 
         const recognized = ocrItems.filter(it => (document.getElementById('input-' + it.id) || {}).value).length;
-        ocrProgress('Распознано надписей: ' + recognized + ' из ' + ocrItems.length + '. Проверьте тексты и нажмите «Применить»');
+        document.querySelectorAll('#ocr-list input').forEach(inp => inp.classList.toggle('empty', !inp.value.trim()));
+        ocrProgress('Распознано ' + recognized + ' из ' + ocrItems.length + '. Результат уже показан справа. Проверьте тексты в списке ниже (красная рамка на превью показывает выбранную надпись), поправьте ошибки, затем нажмите «Применить»');
         document.getElementById('ocr-apply').style.display = 'block';
+        ocrLivePreview();
+        const list = document.getElementById('ocr-list');
+        if (list.scrollIntoView) list.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } catch (e) {
         ocrProgress('');
         handleError(e);
@@ -427,6 +481,7 @@ function ocrApply() {
         if (!res.replaced) throw new Error('Нет текстов для замены: заполните хотя бы одно поле');
         showPreview(res.svg);
         document.getElementById('ocr-download').style.display = 'block';
+        ocrDrawHighlight();
         setStatus('');
     } catch (e) {
         handleError(e);
@@ -438,6 +493,8 @@ function ocrDownload() {
 }
 
 function ocrClear() {
+    clearTimeout(ocrLiveTimer);
+    ocrFocusId = null;
     ocrSource = '';
     ocrGroups = [];
     ocrItems = [];
